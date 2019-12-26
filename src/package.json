@@ -1,0 +1,22 @@
+{
+  "name": "@cryb/mesa",
+  "version": "1.0.0",
+  "description": "A scalable, modern & robust WebSocket wrapper",
+  "main": "index.js",
+  "repository": "https://github.com/crybapp/mesa",
+  "author": "William Gibson <william@tired.io>",
+  "license": "MIT",
+  "scripts": {
+    "start": "node examples/server",
+    "dev": "tsc-watch --outDir ./dist --onSuccess \"yarn start\" --compiler typescript/bin/tsc",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "ioredis": "^4.14.1",
+    "ws": "^7.2.1"
+  },
+  "devDependencies": {
+    "@types/ioredis": "^4.14.3",
+    "@types/ws": "^6.0.4"
+  }
+}
