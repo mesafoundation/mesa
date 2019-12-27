@@ -69,7 +69,7 @@ We provide expansive configuration support for customising Mesa to your needs. H
     redis: string
 
     // Optional: allow Mesa to use an already established HTTPServer for listening. Feature currently unsupported
-    server: HTTPServer
+    server: http.Server
 
     // Optional
     heartbeat?: {
@@ -112,6 +112,7 @@ mesa.on('connection', client => {
     client.on('disconnect', ({ code, reason }) => {
         console.log('Client disconnected')
     })
+})
 ```
 
 From here, everything should be fairly self explanatory. We'll share more guides once we implement more features for Mesa.
