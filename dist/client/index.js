@@ -1,15 +1,1 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const ws_1 = __importDefault(require("ws"));
-const events_1 = __importDefault(require("events"));
-class Client extends events_1.default {
-    constructor(url, config) {
-        super();
-        this.ws = new ws_1.default(url);
-    }
-}
-exports.default = Client;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvY2xpZW50L2luZGV4LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7O0FBQUEsNENBQTBCO0FBQzFCLG9EQUFpQztBQUlqQyxNQUFxQixNQUFPLFNBQVEsZ0JBQVk7SUFJNUMsWUFBWSxHQUFXLEVBQUUsTUFBcUI7UUFDMUMsS0FBSyxFQUFFLENBQUE7UUFFUCxJQUFJLENBQUMsRUFBRSxHQUFHLElBQUksWUFBUyxDQUFDLEdBQUcsQ0FBQyxDQUFBO0lBQ2hDLENBQUM7Q0FDSjtBQVRELHlCQVNDIn0=
+"use strict";var _interopRequireDefault=require("@babel/runtime/helpers/interopRequireDefault"),_classCallCheck2=_interopRequireDefault(require("@babel/runtime/helpers/classCallCheck")),_possibleConstructorReturn2=_interopRequireDefault(require("@babel/runtime/helpers/possibleConstructorReturn")),_getPrototypeOf2=_interopRequireDefault(require("@babel/runtime/helpers/getPrototypeOf")),_inherits2=_interopRequireDefault(require("@babel/runtime/helpers/inherits")),__importDefault=function(e){return e&&e.__esModule?e:{default:e}};Object.defineProperty(exports,"__esModule",{value:!0});var ws_1=__importDefault(require("ws")),events_1=__importDefault(require("events")),Client=function(e){function Client(e,t){var r;return(0,_classCallCheck2.default)(this,Client),(r=(0,_possibleConstructorReturn2.default)(this,(0,_getPrototypeOf2.default)(Client).call(this))).ws=new ws_1.default(e),r}return(0,_inherits2.default)(Client,e),Client}(events_1.default);exports.default=Client;
