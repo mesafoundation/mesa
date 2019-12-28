@@ -15,6 +15,9 @@ interface AuthenticationResult {
     user: any
 }
 
+type AuthenticationDoneCallback = (error: Error, user: AuthenticationResult) => void
+type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void
+
 declare interface Client extends EventEmitter {
     on(event: 'message', listener: (this: Server, message: Message) => void): this
     on(event: 'disconnect', listener: (this: Server, code: number, reason: string) => void): this
@@ -36,7 +39,7 @@ class Client extends EventEmitter {
     private heartbeatAttempts: number = 0
     private heartbeatBuffer: Message[] = []
 
-    authenticationCheck: Function
+    authenticationCheck: AuthenticationCallback
 
     constructor(socket: WebSocket, server: Server) {
         super()
@@ -87,7 +90,7 @@ class Client extends EventEmitter {
         this.heartbeatCount += 1
     }
 
-    authenticate(callback: Function) {
+    authenticate(callback: AuthenticationCallback) {
         this.authenticationCheck = callback
     }
 
