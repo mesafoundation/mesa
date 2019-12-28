@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 import Redis from 'ioredis'
-import EventEmitter from 'events'
+import { EventEmitter } from 'events'
 import { Server as HTTPServer } from 'http'
 
 import Client, { ClientConnectionConfig } from './client'
@@ -36,7 +36,13 @@ interface ServerConfig {
     authentication?: AuthenticationConfig
 }
 
-export default class Server extends EventEmitter {
+declare interface Server extends EventEmitter {
+    on(event: 'connection', listener: (this: Server, client: Client) => void): this
+    on(event: 'message', listener: (this: Server, message: Message) => void): this
+    on(event: 'disconnection', listener: (this: Server, code: number, reason: string) => void): this
+}
+
+class Server extends EventEmitter {
     wss: WebSocket.Server
     clients: Client[] = []
 
@@ -139,3 +145,5 @@ export default class Server extends EventEmitter {
         return config
     }
 }
+
+export default Server

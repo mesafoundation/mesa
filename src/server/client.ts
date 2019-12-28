@@ -1,5 +1,5 @@
 import WebSocket from 'ws'
-import EventEmitter from 'events'
+import { EventEmitter } from 'events'
 
 import Server from '.'
 import Message, { IMessage, Messages } from './message'
@@ -15,7 +15,12 @@ interface AuthenticationResult {
     user: any
 }
 
-export default class Client extends EventEmitter {
+declare interface Client extends EventEmitter {
+    on(event: 'message', listener: (this: Server, message: Message) => void): this
+    on(event: 'disconnect', listener: (this: Server, code: number, reason: string) => void): this
+}
+
+class Client extends EventEmitter {
     id: string
     user: any
 
@@ -118,10 +123,13 @@ export default class Client extends EventEmitter {
         if(this.heartbeatInterval)
             clearInterval(this.heartbeatInterval)
         
-        this.emit('disconnect', { code, reason })
+        this.emit('disconnect', code, reason)
+        this.server.emit('disconnection', code, reason)
     }
 
     disconnect(code?: number) {
         this.socket.close(code)
     }
 }
+
+export default Client

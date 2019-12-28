@@ -1,9 +1,11 @@
 import WebSocket from 'ws'
-import EventEmitter from 'events'
+import { EventEmitter } from 'events'
 
 interface ClientConfig {}
 
-export default class Client extends EventEmitter {
+declare interface Client extends EventEmitter {}
+
+class Client extends EventEmitter {
     ws: WebSocket
     url: string
 
@@ -13,3 +15,5 @@ export default class Client extends EventEmitter {
         this.ws = new WebSocket(url)
     }
 }
+
+export default Client
