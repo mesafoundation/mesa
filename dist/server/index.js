@@ -12,8 +12,7 @@ class Server extends events_1.EventEmitter {
     constructor(config) {
         super();
         this.clients = [];
-        if (!config)
-            config = {};
+        config = this.parseConfig(config);
         this.setup(config);
     }
     send(message) {
@@ -22,13 +21,6 @@ class Server extends events_1.EventEmitter {
     setup(config) {
         if (this.wss)
             this.wss.close();
-        if (config.namespace)
-            this.namespace = config.namespace;
-        if (config.redis)
-            this.setupRedis(config.redis);
-        this.heartbeatConfig = config.heartbeat || { enabled: false };
-        this.reconnectConfig = config.reconnect || { enabled: false };
-        this.authenticationConfig = config.authentication || {};
         const options = {};
         if (config.server)
             options.server = config.server;
@@ -36,6 +28,25 @@ class Server extends events_1.EventEmitter {
             options.port = config.port || 4000;
         this.wss = new ws_1.default.Server(options);
         this.wss.on('connection', socket => this.registerClient(socket));
+    }
+    parseConfig(config) {
+        if (!config)
+            config = {};
+        if (config.namespace)
+            this.namespace = config.namespace;
+        if (config.redis)
+            this.setupRedis(config.redis);
+        config.heartbeat = config.heartbeat || { enabled: false };
+        config.reconnect = config.reconnect || { enabled: false };
+        config.authentication = config.authentication || {};
+        if (config.authentication && typeof config.authentication.sendUserObject === 'undefined')
+            config.authentication.sendUserObject = true;
+        if (config.authentication && typeof config.authentication.disconnectOnFail === 'undefined')
+            config.authentication.disconnectOnFail = true;
+        this.heartbeatConfig = config.heartbeat;
+        this.reconnectConfig = config.reconnect;
+        this.authenticationConfig = config.authentication;
+        return config;
     }
     setupRedis(redisConfig) {
         let redis, publisher, subscriber;

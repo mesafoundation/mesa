@@ -50,7 +50,6 @@ class Client extends events_1.EventEmitter {
         this.heartbeatCount += 1;
     }
     authenticate(callback) {
-        this.authenticated = true;
         this.authenticationCheck = callback;
     }
     updateUser(update) {
@@ -76,10 +75,18 @@ class Client extends events_1.EventEmitter {
         this.messages.recieved.push(message);
     }
     registerAuthentication(error, result) {
-        if (error)
-            console.error(error);
+        if (error && this.server.authenticationConfig.disconnectOnFail)
+            return this.disconnect(1008);
+        const { id, user } = result;
+        if (!id)
+            throw 'No user id supplied in result callback';
+        if (!user)
+            throw 'No user object supplied in result callback';
         this.id = result.id;
         this.user = result.user;
+        if (!this.authenticated)
+            this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? result.user : {}));
+        this.authenticated = true;
     }
     registerDisconnection(code, reason) {
         if (this.heartbeatInterval)

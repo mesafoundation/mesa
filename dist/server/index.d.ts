@@ -17,6 +17,8 @@ interface ReconnectConfig {
 }
 interface AuthenticationConfig {
     timeout?: 10000 | number;
+    sendUserObject?: boolean;
+    disconnectOnFail?: boolean;
 }
 declare type RedisConfig = string | Redis.RedisOptions;
 interface ServerConfig {
@@ -46,6 +48,7 @@ declare class Server extends EventEmitter {
     constructor(config?: ServerConfig);
     send(message: Message): void;
     private setup;
+    private parseConfig;
     private setupRedis;
     pubSubNamespace(): string;
     private registerClient;

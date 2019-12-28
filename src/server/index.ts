@@ -23,6 +23,9 @@ interface ReconnectConfig {
 
 interface AuthenticationConfig {
     timeout?: 10000 | number
+
+    sendUserObject?: boolean
+    disconnectOnFail?: boolean
 }
 
 type RedisConfig = string | Redis.RedisOptions
@@ -61,7 +64,8 @@ class Server extends EventEmitter {
 
 	constructor(config?: ServerConfig) {
         super()
-        if(!config) config = {}
+
+        config = this.parseConfig(config)
 
         this.setup(config)
     }
@@ -74,25 +78,42 @@ class Server extends EventEmitter {
         if(this.wss)
             this.wss.close()
 
-        if(config.namespace)
-            this.namespace = config.namespace
-
-        if(config.redis)
-            this.setupRedis(config.redis)
-
-        this.heartbeatConfig = config.heartbeat || { enabled: false }
-        this.reconnectConfig = config.reconnect || { enabled: false }
-        this.authenticationConfig = config.authentication || {}
-
         const options: WSOptions = {}
 
         if(config.server)
             options.server = config.server
         else
             options.port = config.port || 4000
-    
+
         this.wss = new WebSocket.Server(options)
         this.wss.on('connection', socket => this.registerClient(socket))
+    }
+
+    private parseConfig(config?: ServerConfig) {
+        if(!config)
+            config = {}
+
+        if(config.namespace)
+            this.namespace = config.namespace
+
+        if(config.redis)
+            this.setupRedis(config.redis)
+
+        config.heartbeat = config.heartbeat || { enabled: false }
+        config.reconnect = config.reconnect || { enabled: false }
+        config.authentication = config.authentication || {}
+
+        if(config.authentication && typeof config.authentication.sendUserObject === 'undefined')
+            config.authentication.sendUserObject = true
+
+        if(config.authentication && typeof config.authentication.disconnectOnFail === 'undefined')
+            config.authentication.disconnectOnFail = true
+
+        this.heartbeatConfig = config.heartbeat
+        this.reconnectConfig = config.reconnect
+        this.authenticationConfig = config.authentication
+
+        return config
     }
 
     private setupRedis(redisConfig: RedisConfig) {

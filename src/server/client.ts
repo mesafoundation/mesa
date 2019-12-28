@@ -93,7 +93,6 @@ class Client extends EventEmitter {
     }
 
     authenticate(callback: AuthenticationCallback) {
-        this.authenticated = true
         this.authenticationCheck = callback
     }
 
@@ -125,10 +124,20 @@ class Client extends EventEmitter {
     }
 
     private registerAuthentication(error: any, result: AuthenticationResult) {
-        if(error) console.error(error)
+        if(error && this.server.authenticationConfig.disconnectOnFail)
+            return this.disconnect(1008)
+
+        const { id, user } = result
+        if(!id) throw 'No user id supplied in result callback'
+        if(!user) throw 'No user object supplied in result callback'
 
         this.id = result.id
         this.user = result.user
+
+        if(!this.authenticated)
+            this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? result.user : {}))
+
+        this.authenticated = true
     }
 
     private registerDisconnection(code: number, reason?: string) {

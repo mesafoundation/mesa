@@ -1,25 +1,18 @@
-const WebSocket = require('ws')
+const { Client } = require('../dist')
 
-const ws = new WebSocket('ws://localhost:4000')
+const client = new Client('ws://localhost:4000')
 
-ws.onopen = () => {
+client.on('connected', async () => {
     console.log('Connected to Mesa')
 
-    ws.send(JSON.stringify({ op: 2, d: { token: '' }}))
-}
+    await client.authenticate({ token: fetchToken() })
+    console.log('Authenticated with Mesa')
+})
 
-ws.onmessage = ({ data }) => {
-    let json
+client.on('message', (data, type) => {
+    console.log('Recieved', data, type)
+})
 
-    try {
-        json = JSON.parse(data)
-    } catch(error) {
-        throw error
-    }
-
-    const { op, d, t } = json
-    console.log(op, d, t)
-
-    if(op === 1)
-        return ws.send(JSON.stringify({ op: 11, d: {} }))
-}
+client.on('disconnect', () => {
+    console.log('Disconnected from Mesa')
+})

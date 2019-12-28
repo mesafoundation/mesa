@@ -8,11 +8,14 @@ _**Mesa** — Robust, reliable WebSockets_
 * [Info](#info)
     * [Features](#features)
         * [Planned Features](#planned-features)
+    * [Opcodes](#opcodes)
 * [Installation](#installation)
 * [Usage](#usage)
     * [Server Side](#server-side)
-        * [Authentication](#authentication)
+        * [Authenticating Clients](#authenticating-clients)
     * [Client Side](#client-side)
+        * [JavaScript](#javascript)
+            * [Authentication](#authentication)
 * [Questions / Issues](#questions--issues)
 
 ## Info
@@ -32,6 +35,21 @@ In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub,
 
 #### Planned Features
 * Plugin / middleware support
+* Better disconnection handling
+
+### Opcodes
+Mesa relies on opcodes to identify different event types. While internal Mesa events uses opcodes 1 to 22, these may be useful to know for building a custom client for example.
+
+We recommend that you keep to opcode 0 for sending / recieving events via Mesa to minimalise errors and interference with internal Mesa events.
+
+| **Code** | **Name**           | **Client Action** | **Description**                                                                          |
+|----------|--------------------|-------------------|------------------------------------------------------------------------------------------|
+| 0        | Dispatch           | Send/Receive      | Sent by both Mesa and the client to transfer events                                      |
+| 1        | Heartbeat          | Send/Recieve      | Sent by both Mesa and the client for ping checking                                       |
+| 2        | Authentication     | Send              | Sent by the client to authenticate with Mesa                                             |
+| 10       | Hello              | Recieve           | Sent by Mesa alongside server information for client setup                               |
+| 11       | Heartbeat ACK      | Receive           | Sent by Mesa to acknowledge a heartbeat has been received                                |
+| 22       | Authentication ACK | Receive           | Sent by Mesa alongside user information to acknowledge the client has been authenticated |
 
 ## Installation
 This library is available on the [NPM registry](https://www.npmjs.com/package/@cryb/mesa). To install, run:
@@ -63,7 +81,7 @@ We provide expansive configuration support for customising Mesa to your needs. H
 {
     // Optional: port that Mesa should listen on. Defaults to 4000
     port: number
-    // Optional: namespace for Redis events. If you have multiple Mesa instances running on a cluster, you should use this. Feature currently unsupported
+    // Optional: namespace for Redis events. If you have multiple Mesa instances running on a cluster, you should use this
     namespace: string
 
     // Optional: allow Mesa to use an already established HTTP server for listening
@@ -73,7 +91,7 @@ We provide expansive configuration support for customising Mesa to your needs. H
 
     // Optional
     heartbeat?: {
-        // Enable / disable heartbeats
+        // Enable / disable heartbeats. Defaults to false
         enabled: boolean
 
         // Optional: interval in ms for how often heartbeats should be sent to clients. Defaults to 10000ms
@@ -83,7 +101,7 @@ We provide expansive configuration support for customising Mesa to your needs. H
     }
     // Optional
     reconnect?: {
-        // Enable / disconnect reconnects
+        // Enable / disconnect reconnects. Defaults to false
         enabled: boolean
 
         // Optional: interval in ms for how often a client should try to reconnect once disconnected from a Mesa server. Defaults to 5000ms
@@ -94,6 +112,11 @@ We provide expansive configuration support for customising Mesa to your needs. H
     authentication?: {
         // Optional: interval in ms for how long a client has to send authentication data before being disconnected from a Mesa server. Defaults to 10000ms
         timeout?: number
+
+        // Optional: send the user object to the client once authentication is complete. Defaults to true
+        sendUserObject?: boolean
+        // Optional: disconnect the user if authentication failed. Defaults to true
+        disconnectOnFail?: boolean
     }
 }
 ```
@@ -117,7 +140,7 @@ mesa.on('connection', client => {
 
 From here, everything should be fairly self explanatory. We'll share more guides once we implement more features for Mesa.
 
-#### Authentication
+#### Authenticating Clients
 Mesa supports client authentication through a simple API that can adapt to support your authentication infrastructure. To authenticate a user from Mesa, use the following API:
 
 ```js
@@ -153,37 +176,68 @@ mesa.on('connection', client => {
 Our use of Redis Pub/Sub relies on a client being authenticated. If you haven't authenticated your client Mesa will not make use of Pub/Sub with this client. Other authenticated clients will have their messages proxied by Pub/Sub
 
 ### Client Side
-We are working on several client implementations for JavaScript, Swift and more languages. For now, refer to this implementation using native WebSockets:
+We currently provide a client interface for JavaScript. We're working on client implementations for Swift and other languages.
 
+#### <a name="client-authentication"></a> JavaScript
+Import the Client export from the library as you would with any other Node package:
 ```js
-const ws = new WebSocket('ws://localhost:4000')
+const { Client } = require('@cryb/mesa')
+// or using ES modules
+import { Client } from '@cryb/mesa'
+```
 
-ws.onopen = () => {
-    console.log('Connected to Mesa')
+To connect to a Mesa server, simply write:
+```js
+const client = new Client('ws://localhost:4000')
+```
+*Note: the URL provided needs to be the standard WebSocket connection URI for your Mesa server*
 
-    // Authentication support
-    // ws.send(JSON.stringify({ op: 2, d: { token: fetchToken() }}))
-}
-
-ws.onmessage = ({ data }) => {
-    let json
-
-    try {
-        json = JSON.parse(data)
-    } catch(error) {
-        throw error
-    }
-
-    const { op, d, t } = json
-    console.log(op, d, t)
-
-    // Heartbeat Support
-    if(op === 1)
-        return ws.send(JSON.stringify({ op: 11, d: {} }))
+We provide expansive configuration support for customising Mesa to your needs. Here's a rundown of options we provide:
+```ts
+{
+    // Optional: enable/disable auto connection to the Mesa server once the client object has been instantiated. Enabled by default. Once disabled, use the 'connect()' method in order to connect the client to the Mesa server
+    autoConnect?: boolean
 }
 ```
 
-*Once client implementations are created, we don't recommend interfacing with Mesa using custom-built clients utilising WebSocket frameworks*
+To provide these options, instantiate the client object like this:
+```js
+const client = new Client('ws://localhost:4000', {
+    // Options go here
+})
+```
+
+We use the EventEmitter in order to inform the application of events from the Mesa server. Here's an example of a simple client application:
+```js
+const client = new Client('ws://localhost:4000')
+
+client.on('connection', () => {
+    console.log('Client connected')
+})
+
+client.on('message', message => {
+    const { data, type } = message
+
+    console.log('Recieved', data, type)
+})
+
+client.on('disconnected', (code, reason) => {
+    console.log('Client disconnected')
+})
+```
+
+##### Authentication
+Mesa interacts with the server in order to authenticate the client using a simple API. In order to authenticate with the server, you can use the `authenticate()` API. See the following example:
+```js
+const client = new Client('ws://localhost:4000')
+
+client.on('connection', async () => {
+    console.log('Client connected')
+
+    const { user } = await client.authenticate({ token: fetchToken() })
+    console.log(`Hello ${user.name}!`)
+})
+```
 
 ## Questions / Issues
 If you have an issues with `@cryb/mesa`, please either open a GitHub issue, contact a maintainer or join the [Cryb Discord Server](https://discord.gg/ShTATH4) and ask in #tech-support
