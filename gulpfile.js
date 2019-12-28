@@ -1,14 +1,10 @@
 const { src, dest, series } = require('gulp')
 
-const ts = require('gulp-typescript')
-
-const tsProject = ts.createProject('./tsconfig.json')
+const ts = require('gulp-typescript'),
+        tsProject = ts.createProject('./tsconfig.json')
 
 const paths = {
-    src: [
-        'src/package.json',
-        '*.md'
-    ],
+    src: 'src/package.json',
     srcJS: 'src/*.ts',
 
     dist: 'dist/',
@@ -16,17 +12,9 @@ const paths = {
 }
 
 function js(cb) {
-    const tsResult = tsProject.src()
-        .pipe(
-            tsProject()
-        )
-
+    const tsResult = tsProject.src().pipe(tsProject())
     tsResult.dts.pipe(dest(paths.distJS))
-
-    tsResult
-        .pipe(
-            dest(paths.distJS)
-        )
+    tsResult.pipe(dest(paths.distJS))
         
     cb()
 }
