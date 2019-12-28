@@ -12,7 +12,7 @@ interface AuthenticationResult {
     id: string;
     user: any;
 }
-declare type AuthenticationDoneCallback = (error: Error, user: AuthenticationResult) => void;
+declare type AuthenticationDoneCallback = (error: Error, user?: AuthenticationResult) => void;
 declare type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void;
 declare interface Client extends EventEmitter {
     on(event: 'message', listener: (this: Server, message: Message) => void): this;

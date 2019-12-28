@@ -65,7 +65,7 @@ class Server extends EventEmitter {
         this.clients.forEach(client => client.send(message))
     }
 
-    setup(config: ServerConfig) {
+    private setup(config: ServerConfig) {
         if(this.wss) this.wss.close()
 
         this.heartbeatConfig = config.heartbeat || { enabled: false }
@@ -79,7 +79,7 @@ class Server extends EventEmitter {
         this.wss.on('connection', socket => this.registerClient(socket))
     }
 
-    setupRedis(redisConfig: RedisConfig) {
+    private setupRedis(redisConfig: RedisConfig) {
         let redis: Redis.Redis,
             publisher: Redis.Redis,
             subscriber: Redis.Redis
@@ -107,7 +107,7 @@ class Server extends EventEmitter {
         }).subscribe('ws')
     }
 
-    registerClient(socket: WebSocket) {
+    private registerClient(socket: WebSocket) {
         const client = new Client(socket, this)
 
         client.send(new Message(10, this.fetchClientConfig()))
@@ -116,7 +116,7 @@ class Server extends EventEmitter {
         this.emit('connection', client)
     }
 
-    handleInternalMessage(internalMessage: InternalMessage) {
+    private handleInternalMessage(internalMessage: InternalMessage) {
         const { message: _message, recipients: _recipients, sync } = internalMessage,
                 message = new Message(_message.op, _message.d, _message.t)
 
@@ -130,7 +130,7 @@ class Server extends EventEmitter {
         recipients.forEach(client => client.send(message, true))
     }
 
-    fetchClientConfig() {
+    private fetchClientConfig() {
         const config: ClientConnectionConfig = {}
 
         if(this.heartbeatConfig.enabled)

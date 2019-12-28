@@ -15,8 +15,8 @@ interface AuthenticationResult {
     user: any
 }
 
-type AuthenticationDoneCallback = (error: Error, user: AuthenticationResult) => void
 type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void
+type AuthenticationDoneCallback = (error: Error, user?: AuthenticationResult) => void
 
 declare interface Client extends EventEmitter {
     on(event: 'message', listener: (this: Server, message: Message) => void): this
@@ -26,6 +26,8 @@ declare interface Client extends EventEmitter {
 class Client extends EventEmitter {
     id: string
     user: any
+
+    authenticated: boolean = false
 
     socket: WebSocket
 
@@ -50,7 +52,7 @@ class Client extends EventEmitter {
         this.setup()
     }
 
-    setup() {
+    private setup() {
         const { socket } = this
 
         if(this.server.heartbeatConfig.enabled) {
@@ -74,7 +76,7 @@ class Client extends EventEmitter {
         this.server.publisher.publish('ws', JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
     }
 
-    heartbeat() {
+    private heartbeat() {
         if(this.heartbeatBuffer.length > 0 || this.heartbeatCount === 0) {
             this.heartbeatBuffer = []
             this.heartbeatAttempts = 0
@@ -91,10 +93,17 @@ class Client extends EventEmitter {
     }
 
     authenticate(callback: AuthenticationCallback) {
+        this.authenticated = true
         this.authenticationCheck = callback
     }
 
-    registerMessage(data: WebSocket.Data) {
+    updateUser(update: AuthenticationResult) {
+        if(!this.authenticated) throw 'This user hasn\'t been authenticated yet.'
+
+        this.registerAuthentication(null, update)
+    }
+
+    private registerMessage(data: WebSocket.Data) {
         let json: IMessage
 
         try {
@@ -115,14 +124,14 @@ class Client extends EventEmitter {
         this.messages.recieved.push(message)
     }
 
-    registerAuthentication(error: any, result: AuthenticationResult) {
+    private registerAuthentication(error: any, result: AuthenticationResult) {
         if(error) console.error(error)
 
         this.id = result.id
         this.user = result.user
     }
 
-    registerDisconnection(code: number, reason?: string) {
+    private registerDisconnection(code: number, reason?: string) {
         if(this.heartbeatInterval)
             clearInterval(this.heartbeatInterval)
         
