@@ -4,6 +4,8 @@ const ws = new WebSocket('ws://localhost:4000')
 
 ws.onopen = () => {
     console.log('Connected to Mesa')
+
+    ws.send(JSON.stringify({ op: 2, d: { token: '' }}))
 }
 
 ws.onmessage = ({ data }) => {

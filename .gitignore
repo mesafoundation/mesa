@@ -117,4 +117,4 @@ Temporary Items
 
 # Mesa
 src/node_modules
-dist/node_modules
+dist

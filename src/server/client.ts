@@ -1,7 +1,7 @@
 import WebSocket from 'ws'
 import EventEmitter from 'events'
 
-import Mesa from '.'
+import Server from '.'
 import Message, { IMessage, Messages } from './message'
 
 export interface ClientConnectionConfig {
@@ -10,15 +10,20 @@ export interface ClientConnectionConfig {
     c_authentication_timeout?: number
 }
 
+interface AuthenticationResult {
+    id: string
+    user: any
+}
+
 export default class Client extends EventEmitter {
+    id: string
+    user: any
+
     socket: WebSocket
 
-    messages: Messages = {
-        sent: [],
-        recieved: []
-    }
+    messages: Messages = { sent: [], recieved: [] }
 
-    server: Mesa
+    server: Server
 
     private heartbeatInterval: any
     private heartbeatCount: number = 0
@@ -28,7 +33,7 @@ export default class Client extends EventEmitter {
 
     authenticationCheck: Function
 
-    constructor(socket: WebSocket, server: Mesa) {
+    constructor(socket: WebSocket, server: Server) {
         super()
 
         this.socket = socket
@@ -49,9 +54,16 @@ export default class Client extends EventEmitter {
         socket.on('close', (code, reason) => this.registerDisconnection(code, reason))
     }
 
-    send(message: Message) {
-        this.messages.sent.push(message)
-        this.socket.send(message.serialize())
+    send(message: Message, pubSub: boolean = false) {
+        if(this.server.redis && !this.id)
+            console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API. Please use this API in order to enable pub/sub')
+
+        if(!this.server.redis || !this.id || pubSub) {
+            this.messages.sent.push(message)
+            return this.socket.send(message.serialize())
+        }
+
+        this.server.publisher.publish('ws', JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
     }
 
     heartbeat() {
@@ -86,7 +98,7 @@ export default class Client extends EventEmitter {
         const { op, d, t } = json, message = new Message(op, d, t)
 
         if(op === 2 && this.authenticationCheck)
-            return this.authenticationCheck(d, this.registerAuthentication)
+            return this.authenticationCheck(d, (error, result) => this.registerAuthentication(error, result))
         else if(op === 11)
             return this.heartbeatBuffer.push(message)
 
@@ -95,8 +107,11 @@ export default class Client extends EventEmitter {
         this.messages.recieved.push(message)
     }
 
-    registerAuthentication(error: any, user: any) {
-        console.log(error, user)
+    registerAuthentication(error: any, result: AuthenticationResult) {
+        if(error) console.error(error)
+
+        this.id = result.id
+        this.user = result.user
     }
 
     registerDisconnection(code: number, reason?: string) {
