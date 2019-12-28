@@ -12,8 +12,8 @@ interface AuthenticationResult {
     id: string;
     user: any;
 }
-declare type AuthenticationDoneCallback = (error: Error, user?: AuthenticationResult) => void;
 declare type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void;
+declare type AuthenticationDoneCallback = (error: Error, user?: AuthenticationResult) => void;
 declare interface Client extends EventEmitter {
     on(event: 'message', listener: (this: Server, message: Message) => void): this;
     on(event: 'disconnect', listener: (this: Server, code: number, reason: string) => void): this;
@@ -21,6 +21,7 @@ declare interface Client extends EventEmitter {
 declare class Client extends EventEmitter {
     id: string;
     user: any;
+    authenticated: boolean;
     socket: WebSocket;
     messages: Messages;
     server: Server;
@@ -31,13 +32,14 @@ declare class Client extends EventEmitter {
     private heartbeatBuffer;
     authenticationCheck: AuthenticationCallback;
     constructor(socket: WebSocket, server: Server);
-    setup(): void;
+    private setup;
     send(message: Message, pubSub?: boolean): void;
-    heartbeat(): void;
+    private heartbeat;
     authenticate(callback: AuthenticationCallback): void;
-    registerMessage(data: WebSocket.Data): number | void;
-    registerAuthentication(error: any, result: AuthenticationResult): void;
-    registerDisconnection(code: number, reason?: string): void;
+    updateUser(update: AuthenticationResult): void;
+    private registerMessage;
+    private registerAuthentication;
+    private registerDisconnection;
     disconnect(code?: number): void;
 }
 export default Client;

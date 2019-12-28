@@ -84,10 +84,12 @@ class Server extends EventEmitter {
         this.reconnectConfig = config.reconnect || { enabled: false }
         this.authenticationConfig = config.authentication || {}
 
-        const options: WSOptions = { port: config.port || 4000 }
+        const options: WSOptions = {}
 
         if(config.server)
             options.server = config.server
+        else
+            options.port = config.port || 4000
     
         this.wss = new WebSocket.Server(options)
         this.wss.on('connection', socket => this.registerClient(socket))

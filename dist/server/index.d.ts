@@ -1,10 +1,11 @@
 /// <reference types="node" />
+import http from 'http';
+import https from 'http';
 import WebSocket from 'ws';
 import Redis from 'ioredis';
 import { EventEmitter } from 'events';
-import { Server as HTTPServer } from 'http';
-import Client, { ClientConnectionConfig } from './client';
-import Message, { InternalMessage } from './message';
+import Client from './client';
+import Message from './message';
 interface HeartbeatConfig {
     enabled: boolean;
     interval?: 10000 | number;
@@ -20,8 +21,9 @@ interface AuthenticationConfig {
 declare type RedisConfig = string | Redis.RedisOptions;
 interface ServerConfig {
     port?: number;
+    namespace?: string;
     redis?: RedisConfig;
-    server?: HTTPServer;
+    server?: http.Server | https.Server;
     heartbeat?: HeartbeatConfig;
     reconnect?: ReconnectConfig;
     authentication?: AuthenticationConfig;
@@ -34,6 +36,7 @@ declare interface Server extends EventEmitter {
 declare class Server extends EventEmitter {
     wss: WebSocket.Server;
     clients: Client[];
+    namespace: string;
     redis: Redis.Redis;
     publisher: Redis.Redis;
     subscriber: Redis.Redis;
@@ -42,10 +45,11 @@ declare class Server extends EventEmitter {
     authenticationConfig: AuthenticationConfig;
     constructor(config?: ServerConfig);
     send(message: Message): void;
-    setup(config: ServerConfig): void;
-    setupRedis(redisConfig: RedisConfig): void;
-    registerClient(socket: WebSocket): void;
-    handleInternalMessage(internalMessage: InternalMessage): void;
-    fetchClientConfig(): ClientConnectionConfig;
+    private setup;
+    private setupRedis;
+    pubSubNamespace(): string;
+    private registerClient;
+    private handleInternalMessage;
+    private fetchClientConfig;
 }
 export default Server;
