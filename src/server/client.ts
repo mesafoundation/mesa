@@ -73,7 +73,7 @@ class Client extends EventEmitter {
             return this.socket.send(message.serialize())
         }
 
-        this.server.publisher.publish('ws', JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
+        this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
     }
 
     private heartbeat() {
@@ -98,7 +98,7 @@ class Client extends EventEmitter {
     }
 
     updateUser(update: AuthenticationResult) {
-        if(!this.authenticated) throw 'This user hasn\'t been authenticated yet.'
+        if(!this.authenticated) throw 'This user hasn\'t been authenticated yet'
 
         this.registerAuthentication(null, update)
     }

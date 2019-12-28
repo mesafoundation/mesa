@@ -1,7 +1,9 @@
-import WebSocket from 'ws'
+import http from 'http'
+import https from 'http'
+
+import WebSocket, { ServerOptions as WSOptions } from 'ws'
 import Redis from 'ioredis'
 import { EventEmitter } from 'events'
-import { Server as HTTPServer } from 'http'
 
 import Client, { ClientConnectionConfig } from './client'
 import Message, { InternalMessage } from './message'
@@ -27,9 +29,10 @@ type RedisConfig = string | Redis.RedisOptions
 
 interface ServerConfig {
     port?: number
-    redis?: RedisConfig
+    namespace?: string
 
-    server?: HTTPServer
+    redis?: RedisConfig
+    server?: http.Server | https.Server
 
     heartbeat?: HeartbeatConfig
     reconnect?: ReconnectConfig
@@ -45,6 +48,8 @@ declare interface Server extends EventEmitter {
 class Server extends EventEmitter {
     wss: WebSocket.Server
     clients: Client[] = []
+
+    namespace: string
 
     redis: Redis.Redis
     publisher: Redis.Redis
@@ -66,16 +71,25 @@ class Server extends EventEmitter {
     }
 
     private setup(config: ServerConfig) {
-        if(this.wss) this.wss.close()
+        if(this.wss)
+            this.wss.close()
+
+        if(config.namespace)
+            this.namespace = config.namespace
+
+        if(config.redis)
+            this.setupRedis(config.redis)
 
         this.heartbeatConfig = config.heartbeat || { enabled: false }
         this.reconnectConfig = config.reconnect || { enabled: false }
         this.authenticationConfig = config.authentication || {}
 
-        if(config.redis)
-            this.setupRedis(config.redis)
+        const options: WSOptions = { port: config.port || 4000 }
+
+        if(config.server)
+            options.server = config.server
     
-        this.wss = new WebSocket.Server({ port: config.port || 4000 })
+        this.wss = new WebSocket.Server(options)
         this.wss.on('connection', socket => this.registerClient(socket))
     }
 
@@ -104,7 +118,11 @@ class Server extends EventEmitter {
             } catch(error) {
                 this.emit('error', error)
             }
-        }).subscribe('ws')
+        }).subscribe(this.pubSubNamespace())
+    }
+
+    pubSubNamespace() {
+        return this.namespace ? `ws-${this.namespace}` : 'ws'
     }
 
     private registerClient(socket: WebSocket) {
