@@ -66,7 +66,7 @@ We provide expansive configuration support for customising Mesa to your needs. H
     // Optional: namespace for Redis events. If you have multiple Mesa instances running on a cluster, you should use this. Feature currently unsupported
     namespace: string
 
-    // Optional: allow Mesa to use an already established HTTPServer for listening
+    // Optional: allow Mesa to use an already established HTTP server for listening
     server: http.Server | https.Server
     // Optional: support for pub/sub via Redis
     redis: Redis.RedisOptions | string
@@ -123,7 +123,8 @@ Mesa supports client authentication through a simple API that can adapt to suppo
 ```js
 const server = new Mesa({
     port: 4000,
-    redis: 'redis://localhost:6379' // Optional: Supply a Redis URI to make full use of Authentication via Pub/Sub
+    namespace: 'api', // Optional: supply a namespace so different Mesa servers running on a cluster don't interfere with each other
+    redis: 'redis://localhost:6379' // Optional: supply a Redis URI to make full use of Authentication via Pub/Sub
 })
 
 mesa.on('connection', client => {
@@ -182,7 +183,7 @@ ws.onmessage = ({ data }) => {
 }
 ```
 
-*Once client implementations are created, we don't recommend interfacing with Mesa using custom-built clients utilising WebSocket frameworks.*
+*Once client implementations are created, we don't recommend interfacing with Mesa using custom-built clients utilising WebSocket frameworks*
 
 ## Questions / Issues
-If you have an issues with `@cryb/mesa`, please either open a GitHub issue, contact a maintainer or join the [Cryb Discord Server](https://discord.gg/ShTATH4) and ask in #tech-support.
+If you have an issues with `@cryb/mesa`, please either open a GitHub issue, contact a maintainer or join the [Cryb Discord Server](https://discord.gg/ShTATH4) and ask in #tech-support
