@@ -10,13 +10,6 @@ import Client, { ClientConnectionConfig } from './client'
 
 type RedisConfig = string | Redis.RedisOptions
 
-// interface SyncConfig {
-//     enabled: boolean
-
-//     maxEvents?: 100 | number
-//     ignoreTypes?: string[]
-// }
-
 interface HeartbeatConfig {
     enabled: boolean
 
@@ -45,7 +38,6 @@ interface ServerConfig {
     redis?: RedisConfig
     server?: http.Server | https.Server
 
-    // sync?: SyncConfig
     heartbeat?: HeartbeatConfig
     reconnect?: ReconnectConfig
     authentication?: AuthenticationConfig
@@ -67,7 +59,6 @@ class Server extends EventEmitter {
     publisher: Redis.Redis
     subscriber: Redis.Redis
 
-    // syncConfig: SyncConfig
     heartbeatConfig: HeartbeatConfig
     reconnectConfig: ReconnectConfig
     authenticationConfig: AuthenticationConfig
@@ -109,15 +100,8 @@ class Server extends EventEmitter {
         if(config.redis)
             this.setupRedis(config.redis)
 
-        // config.sync = config.sync || { enabled: false }
         config.heartbeat = config.heartbeat || { enabled: false }
         config.reconnect = config.reconnect || { enabled: false }
-
-        // if(!config.redis && config.sync.enabled) {
-        //     config.sync.enabled = false
-
-        //     console.warn('Mesa Sync relies on Redis to function properly. As you have not configured Redis, Sync will be disabled')
-        // }
 
         if(!config.authentication) {
             const authenticationKeys = ['sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'],
@@ -130,7 +114,6 @@ class Server extends EventEmitter {
         } else
             config.authentication = {}
 
-        // this.syncConfig = config.sync
         this.heartbeatConfig = config.heartbeat
         this.reconnectConfig = config.reconnect
         this.authenticationConfig = config.authentication
@@ -180,7 +163,6 @@ class Server extends EventEmitter {
     }
 
     private handleInternalMessage(internalMessage: InternalMessage) {
-        // const { message: _message, recipients: _recipients, sync } = internalMessage,
         const { message: _message, recipients: _recipients } = internalMessage,
                 message = new Message(_message.op, _message.d, _message.t)
 

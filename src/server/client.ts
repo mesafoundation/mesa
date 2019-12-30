@@ -74,7 +74,6 @@ class Client extends EventEmitter {
         }
 
         this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id] }))
-        // this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
     }
 
     private heartbeat() {
