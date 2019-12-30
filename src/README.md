@@ -235,7 +235,7 @@ const client = new Client('ws://localhost:4000')
 client.on('connection', async () => {
     console.log('Client connected')
 
-    const { user } = await client.authenticate({ token: fetchToken() })
+    const user = await client.authenticate({ token: fetchToken() })
     console.log(`Hello ${user.name}!`)
 })
 ```
