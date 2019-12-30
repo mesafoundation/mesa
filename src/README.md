@@ -96,9 +96,9 @@ We provide expansive configuration support for customising Mesa to your needs. H
         enabled: boolean
 
         // Optional: interval in ms for how often heartbeats should be sent to clients. Defaults to 10000ms
-        interval: number
+        interval?: number
         // Optional: how many heartbeats Mesa should send before closing the connection. Defaults to 3
-        maxAttempts: number
+        maxAttempts?: number
     }
     // Optional
     reconnect?: {
@@ -118,6 +118,8 @@ We provide expansive configuration support for customising Mesa to your needs. H
         sendUserObject?: boolean
         // Optional: disconnect the user if authentication failed. Defaults to true
         disconnectOnFail?: boolean
+        // Optional: store the IDs of connected users in a Redis set called connected_clients. Defaults to true
+        storeConnectedUsers?: boolean
     }
 }
 ```
