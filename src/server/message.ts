@@ -17,13 +17,13 @@ export interface IMessage {
 
 export interface MessageOptions {
     to?: string
-    sync?: boolean
+    // sync?: boolean
 }
 
 export interface InternalMessage {
     message: IMessage
     recipients: string[]
-    sync: boolean
+    // sync: boolean
 }
 
 export default class Message {
@@ -43,7 +43,8 @@ export default class Message {
         this.type = type
 
         this.raw = { op: opcode, d: data, t: type }
-        this.options = options || { sync: false }
+        this.options = options || { }
+        // this.options = options || { sync: false }
     }
 
     serialize(toJson: boolean = false) {

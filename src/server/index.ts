@@ -1,12 +1,21 @@
 import http from 'http'
 import https from 'http'
 
-import WebSocket, { ServerOptions as WSOptions } from 'ws'
 import Redis from 'ioredis'
 import { EventEmitter } from 'events'
+import WebSocket, { ServerOptions as WSOptions } from 'ws'
 
-import Client, { ClientConnectionConfig } from './client'
 import Message, { InternalMessage } from './message'
+import Client, { ClientConnectionConfig } from './client'
+
+type RedisConfig = string | Redis.RedisOptions
+
+// interface SyncConfig {
+//     enabled: boolean
+
+//     maxEvents?: 100 | number
+//     ignoreTypes?: string[]
+// }
 
 interface HeartbeatConfig {
     enabled: boolean
@@ -26,9 +35,8 @@ interface AuthenticationConfig {
 
     sendUserObject?: boolean
     disconnectOnFail?: boolean
+    storeConnectedUsers?: boolean
 }
-
-type RedisConfig = string | Redis.RedisOptions
 
 interface ServerConfig {
     port?: number
@@ -37,6 +45,7 @@ interface ServerConfig {
     redis?: RedisConfig
     server?: http.Server | https.Server
 
+    // sync?: SyncConfig
     heartbeat?: HeartbeatConfig
     reconnect?: ReconnectConfig
     authentication?: AuthenticationConfig
@@ -58,6 +67,7 @@ class Server extends EventEmitter {
     publisher: Redis.Redis
     subscriber: Redis.Redis
 
+    // syncConfig: SyncConfig
     heartbeatConfig: HeartbeatConfig
     reconnectConfig: ReconnectConfig
     authenticationConfig: AuthenticationConfig
@@ -99,16 +109,28 @@ class Server extends EventEmitter {
         if(config.redis)
             this.setupRedis(config.redis)
 
+        // config.sync = config.sync || { enabled: false }
         config.heartbeat = config.heartbeat || { enabled: false }
         config.reconnect = config.reconnect || { enabled: false }
-        config.authentication = config.authentication || {}
 
-        if(config.authentication && typeof config.authentication.sendUserObject === 'undefined')
-            config.authentication.sendUserObject = true
+        // if(!config.redis && config.sync.enabled) {
+        //     config.sync.enabled = false
 
-        if(config.authentication && typeof config.authentication.disconnectOnFail === 'undefined')
-            config.authentication.disconnectOnFail = true
+        //     console.warn('Mesa Sync relies on Redis to function properly. As you have not configured Redis, Sync will be disabled')
+        // }
 
+        if(!config.authentication) {
+            const authenticationKeys = ['sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'],
+                    authenticationKeyValues = [true, true, true]
+
+            authenticationKeys.forEach((key, i) => {
+                if(typeof config.authentication[key])
+                    config.authentication[key] = authenticationKeyValues[i]
+            })
+        } else
+            config.authentication = {}
+
+        // this.syncConfig = config.sync
         this.heartbeatConfig = config.heartbeat
         this.reconnectConfig = config.reconnect
         this.authenticationConfig = config.authentication
@@ -158,7 +180,8 @@ class Server extends EventEmitter {
     }
 
     private handleInternalMessage(internalMessage: InternalMessage) {
-        const { message: _message, recipients: _recipients, sync } = internalMessage,
+        // const { message: _message, recipients: _recipients, sync } = internalMessage,
+        const { message: _message, recipients: _recipients } = internalMessage,
                 message = new Message(_message.op, _message.d, _message.t)
 
         let recipients: Client[]

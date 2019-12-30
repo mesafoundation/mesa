@@ -1,11 +1,12 @@
 /// <reference types="node" />
 import http from 'http';
 import https from 'http';
-import WebSocket from 'ws';
 import Redis from 'ioredis';
 import { EventEmitter } from 'events';
-import Client from './client';
+import WebSocket from 'ws';
 import Message from './message';
+import Client from './client';
+declare type RedisConfig = string | Redis.RedisOptions;
 interface HeartbeatConfig {
     enabled: boolean;
     interval?: 10000 | number;
@@ -19,8 +20,8 @@ interface AuthenticationConfig {
     timeout?: 10000 | number;
     sendUserObject?: boolean;
     disconnectOnFail?: boolean;
+    storeConnectedUsers?: boolean;
 }
-declare type RedisConfig = string | Redis.RedisOptions;
 interface ServerConfig {
     port?: number;
     namespace?: string;

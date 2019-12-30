@@ -44,8 +44,6 @@ class Client extends events_1.EventEmitter {
             this.connect();
     }
     parseConfig(config) {
-        if (!config)
-            config = {};
         if (typeof config.autoConnect === 'undefined')
             config.autoConnect = true;
         return config;

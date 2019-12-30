@@ -40,6 +40,7 @@ declare class Client extends EventEmitter {
     private registerMessage;
     private registerAuthentication;
     private registerDisconnection;
+    private clientNamespace;
     disconnect(code?: number): void;
 }
 export default Client;

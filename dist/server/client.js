@@ -33,7 +33,8 @@ class Client extends events_1.EventEmitter {
             this.messages.sent.push(message);
             return this.socket.send(message.serialize());
         }
-        this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }));
+        this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id] }));
+        // this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
     }
     heartbeat() {
         if (this.heartbeatBuffer.length > 0 || this.heartbeatCount === 0) {
@@ -82,17 +83,24 @@ class Client extends events_1.EventEmitter {
             throw 'No user id supplied in result callback';
         if (!user)
             throw 'No user object supplied in result callback';
-        this.id = result.id;
-        this.user = result.user;
+        this.id = id;
+        this.user = user;
+        if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
+            this.server.redis.sadd(this.clientNamespace(), id);
         if (!this.authenticated)
-            this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? result.user : {}));
+            this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}));
         this.authenticated = true;
     }
     registerDisconnection(code, reason) {
         if (this.heartbeatInterval)
             clearInterval(this.heartbeatInterval);
+        if (this.id && this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
+            this.server.redis.srem(this.clientNamespace(), this.id);
         this.emit('disconnect', code, reason);
         this.server.emit('disconnection', code, reason);
+    }
+    clientNamespace() {
+        return this.server.namespace ? `undelivered_events-${this.server.namespace}` : 'undelivered_events';
     }
     disconnect(code) {
         this.socket.close(code);

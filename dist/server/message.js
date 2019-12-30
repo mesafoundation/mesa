@@ -7,7 +7,8 @@ class Message {
         this.data = data;
         this.type = type;
         this.raw = { op: opcode, d: data, t: type };
-        this.options = options || { sync: false };
+        this.options = options || {};
+        // this.options = options || { sync: false }
     }
     serialize(toJson = false) {
         const json = { op: this.opcode, d: this.data, t: this.type };

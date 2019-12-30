@@ -34,6 +34,7 @@ In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub,
 * Authentication support
 
 #### Planned Features
+* Message sync support
 * Plugin / middleware support
 * Better disconnection handling
 

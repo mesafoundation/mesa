@@ -14,12 +14,10 @@ export interface IMessage {
 }
 export interface MessageOptions {
     to?: string;
-    sync?: boolean;
 }
 export interface InternalMessage {
     message: IMessage;
     recipients: string[];
-    sync: boolean;
 }
 export default class Message {
     opcode: Opcode;

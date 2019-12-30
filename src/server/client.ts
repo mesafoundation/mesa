@@ -73,7 +73,8 @@ class Client extends EventEmitter {
             return this.socket.send(message.serialize())
         }
 
-        this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
+        this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id] }))
+        // this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
     }
 
     private heartbeat() {
@@ -131,11 +132,14 @@ class Client extends EventEmitter {
         if(!id) throw 'No user id supplied in result callback'
         if(!user) throw 'No user object supplied in result callback'
 
-        this.id = result.id
-        this.user = result.user
+        this.id = id
+        this.user = user
+
+        if(this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
+            this.server.redis.sadd(this.clientNamespace(), id)
 
         if(!this.authenticated)
-            this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? result.user : {}))
+            this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}))
 
         this.authenticated = true
     }
@@ -143,9 +147,16 @@ class Client extends EventEmitter {
     private registerDisconnection(code: number, reason?: string) {
         if(this.heartbeatInterval)
             clearInterval(this.heartbeatInterval)
-        
+
+        if(this.id && this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
+            this.server.redis.srem(this.clientNamespace(), this.id)
+    
         this.emit('disconnect', code, reason)
         this.server.emit('disconnection', code, reason)
+    }
+
+    private clientNamespace() {
+        return this.server.namespace ? `undelivered_events-${this.server.namespace}` : 'undelivered_events'
     }
 
     disconnect(code?: number) {
