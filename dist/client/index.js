@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 const ws_1 = __importDefault(require("ws"));
 const message_1 = __importDefault(require("../server/message"));
+const getters_util_1 = require("../utils/getters.util");
 class Client extends events_1.EventEmitter {
     constructor(url, config) {
         super();
@@ -93,7 +94,7 @@ class Client extends events_1.EventEmitter {
                 if (c_authentication_timeout)
                     this.authenticationTimeout = c_authentication_timeout;
                 if (rules.indexOf('enforce_equal_versions') > -1)
-                    this.send(new message_1.default(0, { v: require('../package.json').version }, 'CLIENT_VERSION'));
+                    this.send(new message_1.default(0, { v: getters_util_1.getVersion() }, 'CLIENT_VERSION'));
                 if (rules.indexOf('store_messages') > -1)
                     this.messages = { sent: [], recieved: [] };
                 this.rules = rules;

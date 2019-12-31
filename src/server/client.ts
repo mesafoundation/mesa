@@ -4,6 +4,8 @@ import WebSocket from 'ws'
 import Server from '.'
 import Message, { IMessage, IMessages } from './message'
 
+import { getVersion } from '../utils/getters.util'
+
 export type Rule = 'enforce_equal_versions' | 'store_messages' | 'sends_user_object'
 
 export interface IClientConnectionConfig {
@@ -126,6 +128,14 @@ class Client extends EventEmitter {
 
 		const { op, d, t } = json, message = new Message(op, d, t)
 
+		if (op === 0 && (this.server.clientConfig.enforceEqualVersions))
+			switch (t) {
+				case 'CLIENT_VERSION':
+					const { v } = d
+
+					if (v !== getVersion() && this.server.clientConfig.enforceEqualVersions)
+						return this.disconnect(1002)
+			}
 		if (op === 2 && this.authenticationCheck)
 			return this.authenticationCheck(d, (error, result) => this.registerAuthentication(error, result))
 		else if (op === 11)

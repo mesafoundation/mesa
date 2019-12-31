@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 const message_1 = __importDefault(require("./message"));
+const getters_util_1 = require("../utils/getters.util");
 class Client extends events_1.EventEmitter {
     constructor(socket, server) {
         super();
@@ -69,6 +70,13 @@ class Client extends events_1.EventEmitter {
             throw error;
         }
         const { op, d, t } = json, message = new message_1.default(op, d, t);
+        if (op === 0 && (this.server.clientConfig.enforceEqualVersions))
+            switch (t) {
+                case 'CLIENT_VERSION':
+                    const { v } = d;
+                    if (v !== getters_util_1.getVersion() && this.server.clientConfig.enforceEqualVersions)
+                        return this.disconnect(1002);
+            }
         if (op === 2 && this.authenticationCheck)
             return this.authenticationCheck(d, (error, result) => this.registerAuthentication(error, result));
         else if (op === 11)

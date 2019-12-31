@@ -3,6 +3,7 @@ import WebSocket from 'ws'
 
 import { IClientConnectionConfig, Rule } from '../server/client'
 import Message, { IMessage, IMessages } from '../server/message'
+import { getVersion } from '../utils/getters.util'
 
 interface IClientConfig {
 	autoConnect?: boolean
@@ -155,7 +156,7 @@ class Client extends EventEmitter {
 
 				if (rules.indexOf('enforce_equal_versions') > -1)
 					this.send(
-						new Message(0, { v: require('../package.json').version }, 'CLIENT_VERSION')
+						new Message(0, { v: getVersion() }, 'CLIENT_VERSION')
 					)
 
 				if (rules.indexOf('store_messages') > -1)
