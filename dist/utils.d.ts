@@ -1,10 +1,10 @@
 import { Rule } from './server/client';
-import { ServerOptions, ClientConfig, AuthenticationConfig } from './server';
+import { IServerOptions, IClientConfig, IAuthenticationConfig } from './server';
 export declare const parseConfig: <T>(config: T, keys: (keyof T)[], values: any[]) => T;
-interface Configs {
-    serverOptions: ServerOptions;
-    clientConfig: ClientConfig;
-    authenticationConfig: AuthenticationConfig;
+interface IConfigs {
+    serverOptions: IServerOptions;
+    clientConfig: IClientConfig;
+    authenticationConfig: IAuthenticationConfig;
 }
-export declare const parseRules: (configs: Configs) => Rule[];
+export declare const parseRules: (configs: IConfigs) => Rule[];
 export {};

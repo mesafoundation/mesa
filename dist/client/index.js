@@ -3,8 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const ws_1 = __importDefault(require("ws"));
 const events_1 = require("events");
+const ws_1 = __importDefault(require("ws"));
 const message_1 = __importDefault(require("../server/message"));
 class Client extends events_1.EventEmitter {
     constructor(url, config) {
@@ -16,7 +16,7 @@ class Client extends events_1.EventEmitter {
             if (this.reconnectionInterval)
                 clearInterval(this.reconnectionInterval);
             if (this.ws && this.ws.readyState === this.ws.OPEN)
-                throw 'This client is already connected to a pre-existing Mesa server. Call disconnect() to disconnect before attempting to reconnect again';
+                throw new Error('This client is already connected to a pre-existing Mesa server. Call disconnect() to disconnect before attempting to reconnect again');
             this.ws = new ws_1.default(this.url);
             const resolveConnection = () => {
                 this.ws.removeEventListener('open', resolveConnection);
@@ -43,16 +43,6 @@ class Client extends events_1.EventEmitter {
         if (config.autoConnect)
             this.connect();
     }
-    parseConfig(config) {
-        if (typeof config.autoConnect === 'undefined')
-            config.autoConnect = true;
-        return config;
-    }
-    connectAndSupressWarnings() {
-        this.connect()
-            .then(() => { })
-            .catch(() => { });
-    }
     send(message) {
         if (this.ws.readyState !== this.ws.OPEN)
             return this.queue.push(message);
@@ -62,6 +52,18 @@ class Client extends events_1.EventEmitter {
     }
     disconnect(code, data) {
         this.ws.close(code, data);
+    }
+    parseConfig(config) {
+        if (typeof config.autoConnect === 'undefined')
+            config.autoConnect = true;
+        return config;
+    }
+    connectAndSupressWarnings() {
+        this.connect()
+            // tslint:disable-next-line: no-empty
+            .then(() => { })
+            // tslint:disable-next-line: no-empty
+            .catch(() => { });
     }
     registerOpen() {
         this.emit('connected');

@@ -8,7 +8,9 @@ _**Mesa** — Robust, reliable WebSockets_
 * [Info](#info)
     * [Features](#features)
         * [Planned Features](#planned-features)
-    * [Opcodes](#opcodes)
+    * [Status](#status)
+* [Codebase](#codebase)
+	* [Code Style](#code-style)
 * [Installation](#installation)
 * [Usage](#usage)
     * [Server Side](#server-side)
@@ -16,6 +18,7 @@ _**Mesa** — Robust, reliable WebSockets_
     * [Client Side](#client-side)
         * [JavaScript](#javascript)
             * [Authentication](#authentication)
+    * [Opcodes](#opcodes)
 * [Questions / Issues](#questions--issues)
 
 ## Info
@@ -38,19 +41,18 @@ In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub,
 * Plugin / middleware support
 * Better disconnection handling
 
-### Opcodes
-Mesa relies on opcodes to identify different event types. While internal Mesa events uses opcodes 1 to 22, these may be useful to know for building a custom client for example.
+### Status
+`@cryb/mesa` has been actively developed since December 2019.
 
-We recommend that you keep to opcode 0 for sending / recieving events via Mesa to minimalise errors and interference with internal Mesa events.
+## Codebase
+The codebase for `@cryb/mesa` is written in JavaScript, utilising TypeScript and Node.js.
 
-| **Code** | **Name**           | **Client Action** | **Description**                                                                          |
-|----------|--------------------|-------------------|------------------------------------------------------------------------------------------|
-| 0        | Dispatch           | Send/Receive      | Sent by both Mesa and the client to transfer events                                      |
-| 1        | Heartbeat          | Send/Recieve      | Sent by both Mesa and the client for ping checking                                       |
-| 2        | Authentication     | Send              | Sent by the client to authenticate with Mesa                                             |
-| 10       | Hello              | Recieve           | Sent by Mesa alongside server information for client setup                               |
-| 11       | Heartbeat ACK      | Receive           | Sent by Mesa to acknowledge a heartbeat has been received                                |
-| 22       | Authentication ACK | Receive           | Sent by Mesa alongside user information to acknowledge the client has been authenticated |
+### Code Style
+We ask that you follow our [code style guidelines](https://github.com/crybapp/library/blob/master/code-style/STYLE.md) when contributing to this repository.
+
+We use TSLint in order to lint our code. Run `yarn lint` before committing any code to ensure it's clean.
+
+*Note: while we have most rules covered in our `tslint.json` config, it's good practice to familarise yourself with our code style guidelines*
 
 ## Installation
 This library is available on the [NPM registry](https://www.npmjs.com/package/@cryb/mesa). To install, run:
@@ -179,7 +181,7 @@ mesa.on('connection', client => {
 Our use of Redis Pub/Sub relies on a client being authenticated. If you haven't authenticated your client Mesa will not make use of Pub/Sub with this client. Other authenticated clients will have their messages proxied by Pub/Sub
 
 ### Client Side
-We currently provide a client interface for JavaScript. We're working on client implementations for Swift and other languages.
+We currently provide a client interface Ifor JavaScript. We're working on client implementations for Swift and other languages.
 
 #### <a name="client-authentication"></a> JavaScript
 Import the Client export from the library as you would with any other Node package:
@@ -241,6 +243,20 @@ client.on('connection', async () => {
     console.log(`Hello ${user.name}!`)
 })
 ```
+
+### Opcodes
+Mesa relies on opcodes to identify different event types. While internal Mesa events uses opcodes 1 to 22, these may be useful to know for building a custom client for example.
+
+We recommend that you keep to opcode 0 for sending / recieving events via Mesa to minimalise errors and interference with internal Mesa events.
+
+| **Code** | **Name**           | **Client Action** | **Description**                                                                          |
+|----------|--------------------|-------------------|------------------------------------------------------------------------------------------|
+| 0        | Dispatch           | Send/Receive      | Sent by both Mesa and the client to transfer events                                      |
+| 1        | Heartbeat          | Send/Recieve      | Sent by both Mesa and the client for ping checking                                       |
+| 2        | Authentication     | Send              | Sent by the client to authenticate with Mesa                                             |
+| 10       | Hello              | Recieve           | Sent by Mesa alongside server information for client setup                               |
+| 11       | Heartbeat ACK      | Receive           | Sent by Mesa to acknowledge a heartbeat has been received                                |
+| 22       | Authentication ACK | Receive           | Sent by Mesa alongside user information to acknowledge the client has been authenticated |
 
 ## Questions / Issues
 If you have an issues with `@cryb/mesa`, please either open a GitHub issue, contact a maintainer or join the [Cryb Discord Server](https://discord.gg/ShTATH4) and ask in #tech-support

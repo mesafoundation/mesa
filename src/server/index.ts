@@ -1,205 +1,206 @@
 import http from 'http'
 import https from 'https'
 
-import Redis from 'ioredis'
 import { EventEmitter } from 'events'
+import Redis from 'ioredis'
 import WebSocket, { ServerOptions as WSOptions } from 'ws'
 
-import Message, { InternalMessage } from './message'
-import Client, { Rule, ClientConnectionConfig } from './client'
+import Client, { IClientConnectionConfig, Rule } from './client'
+import Message, { IInternalMessage } from './message'
 
-import { parseRules, parseConfig } from '../utils'
+import { parseConfig, parseRules } from '../utils'
 
 type RedisConfig = string | Redis.RedisOptions
 
-export interface ClientConfig {
-    enforceEqualVersions?: boolean
+export interface IClientConfig {
+	enforceEqualVersions?: boolean
 }
 
-export interface ServerOptions {
-    storeMessages?: boolean
+export interface IServerOptions {
+	storeMessages?: boolean
 }
 
-export interface HeartbeatConfig {
-    enabled: boolean
+export interface IHeartbeatConfig {
+	enabled: boolean
 
-    interval?: 10000 | number
-    maxAttempts?: 3 | number
+	interval?: 10000 | number
+	maxAttempts?: 3 | number
 }
 
-export interface ReconnectConfig {
-    enabled: boolean
+export interface IReconnectConfig {
+	enabled: boolean
 
-    interval?: 5000 | number
+	interval?: 5000 | number
 }
 
-export interface AuthenticationConfig {
-    timeout?: 10000 | number
+export interface IAuthenticationConfig {
+	timeout?: 10000 | number
 
-    sendUserObject?: boolean
-    disconnectOnFail?: boolean
-    storeConnectedUsers?: boolean
+	sendUserObject?: boolean
+	disconnectOnFail?: boolean
+	storeConnectedUsers?: boolean
 }
 
-interface ServerConfig {
-    port?: number
-    namespace?: string
+interface IServerConfig {
+	port?: number
+	namespace?: string
 
-    redis?: RedisConfig
-    server?: http.Server | https.Server
+	redis?: RedisConfig
+	server?: http.Server | https.Server
 
-    client?: ClientConfig
-    options?: ServerOptions
+	client?: IClientConfig
+	options?: IServerOptions
 
-    heartbeat?: HeartbeatConfig
-    reconnect?: ReconnectConfig
-    authentication?: AuthenticationConfig
+	heartbeat?: IHeartbeatConfig
+	reconnect?: IReconnectConfig
+	authentication?: IAuthenticationConfig
 }
 
+// tslint:disable-next-line: interface-name
 declare interface Server extends EventEmitter {
-    on(event: 'connection', listener: (this: Server, client: Client) => void): this
-    on(event: 'message', listener: (this: Server, message: Message) => void): this
-    on(event: 'disconnection', listener: (this: Server, code: number, reason: string) => void): this
+	on(event: 'connection', listener: (this: Server, client: Client) => void): this
+	on(event: 'message', listener: (this: Server, message: Message) => void): this
+	on(event: 'disconnection', listener: (this: Server, code: number, reason: string) => void): this
 }
 
 class Server extends EventEmitter {
-    wss: WebSocket.Server
-    clients: Client[] = []
+	public wss: WebSocket.Server
+	public clients: Client[] = []
 
-    namespace: string
+	public namespace: string
 
-    redis: Redis.Redis
-    publisher: Redis.Redis
-    subscriber: Redis.Redis
+	public redis: Redis.Redis
+	public publisher: Redis.Redis
+	public subscriber: Redis.Redis
 
-    clientConfig: ClientConfig
-    serverOptions: ServerOptions
+	public clientConfig: IClientConfig
+	public serverOptions: IServerOptions
 
-    heartbeatConfig: HeartbeatConfig
-    reconnectConfig: ReconnectConfig
-    authenticationConfig: AuthenticationConfig
+	public heartbeatConfig: IHeartbeatConfig
+	public reconnectConfig: IReconnectConfig
+	public authenticationConfig: IAuthenticationConfig
 
-	constructor(config?: ServerConfig) {
-        super()
+	constructor(config?: IServerConfig) {
+		super()
 
-        config = this.parseConfig(config)
+		config = this.parseConfig(config)
 
-        this.setup(config)
-    }
+		this.setup(config)
+	}
 
-    send(message: Message) {
-        this.clients.forEach(client => client.send(message))
-    }
+	public send(message: Message) {
+		this.clients.forEach(client => client.send(message))
+	}
 
-    private setup(config: ServerConfig) {
-        if(this.wss)
-            this.wss.close()
+	public pubSubNamespace() {
+		return this.namespace ? `ws-${this.namespace}` : 'ws'
+	}
 
-        const options: WSOptions = {}
+	private setup(config: IServerConfig) {
+		if (this.wss)
+			this.wss.close()
 
-        if(config.server)
-            options.server = config.server
-        else
-            options.port = config.port || 4000
+		const options: WSOptions = {}
 
-        this.wss = new WebSocket.Server(options)
-        this.wss.on('connection', socket => this.registerClient(socket))
-    }
+		if (config.server)
+			options.server = config.server
+		else
+			options.port = config.port || 4000
 
-    private parseConfig(config?: ServerConfig) {
-        if(!config)
-            config = {}
+		this.wss = new WebSocket.Server(options)
+		this.wss.on('connection', socket => this.registerClient(socket))
+	}
 
-        if(config.namespace)
-            this.namespace = config.namespace
+	private parseConfig(config?: IServerConfig) {
+		if (!config)
+			config = {}
 
-        if(config.redis)
-            this.setupRedis(config.redis)
+		if (config.namespace)
+			this.namespace = config.namespace
 
-        this.clientConfig = parseConfig(config.client, ['enforceEqualVersions'], [false])
-        this.serverOptions = parseConfig(config.options, ['storeMessages'], [false])
+		if (config.redis)
+			this.setupRedis(config.redis)
 
-        this.heartbeatConfig = config.heartbeat || { enabled: false }
-        this.reconnectConfig = config.reconnect || { enabled: false }
-        this.authenticationConfig = parseConfig(config.authentication, ['timeout', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, true, true, true])
+		this.clientConfig = parseConfig(config.client, ['enforceEqualVersions'], [false])
+		this.serverOptions = parseConfig(config.options, ['storeMessages'], [false])
 
-        return config
-    }
+		this.heartbeatConfig = config.heartbeat || { enabled: false }
+		this.reconnectConfig = config.reconnect || { enabled: false }
+		this.authenticationConfig = parseConfig(config.authentication, ['timeout', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, true, true, true])
 
-    private setupRedis(redisConfig: RedisConfig) {
-        let redis: Redis.Redis,
-            publisher: Redis.Redis,
-            subscriber: Redis.Redis
+		return config
+	}
 
-        if(typeof redisConfig === 'string') {
-            redis = new Redis(redisConfig)
-            publisher = new Redis(redisConfig)
-            subscriber = new Redis(redisConfig)
-        } else {
-            redis = new Redis(redisConfig)
-            publisher = new Redis(redisConfig)
-            subscriber = new Redis(redisConfig)
-        }
+	private setupRedis(redisConfig: RedisConfig) {
+		let redis: Redis.Redis,
+			publisher: Redis.Redis,
+			subscriber: Redis.Redis
 
-        this.redis = redis
-        this.publisher = publisher
-        this.subscriber = subscriber
+		if (typeof redisConfig === 'string') {
+			redis = new Redis(redisConfig)
+			publisher = new Redis(redisConfig)
+			subscriber = new Redis(redisConfig)
+		} else {
+			redis = new Redis(redisConfig)
+			publisher = new Redis(redisConfig)
+			subscriber = new Redis(redisConfig)
+		}
 
-        subscriber.on('message', async (_, data) => {
-            try {
-                this.handleInternalMessage(JSON.parse(data))
-            } catch(error) {
-                this.emit('error', error)
-            }
-        }).subscribe(this.pubSubNamespace())
-    }
+		this.redis = redis
+		this.publisher = publisher
+		this.subscriber = subscriber
 
-    pubSubNamespace() {
-        return this.namespace ? `ws-${this.namespace}` : 'ws'
-    }
+		subscriber.on('message', async (_, data) => {
+			try {
+				this.handleInternalMessage(JSON.parse(data))
+			} catch (error) {
+				this.emit('error', error)
+			}
+		}).subscribe(this.pubSubNamespace())
+	}
 
-    private registerClient(socket: WebSocket) {
-        const client = new Client(socket, this)
+	private registerClient(socket: WebSocket) {
+		const client = new Client(socket, this)
 
-        client.send(new Message(10, this.fetchClientConfig()))
+		client.send(new Message(10, this.fetchClientConfig()))
 
-        this.clients.push(client)
-        this.emit('connection', client)
-    }
+		this.clients.push(client)
+		this.emit('connection', client)
+	}
 
-    private handleInternalMessage(internalMessage: InternalMessage) {
-        const { message: _message, recipients: _recipients } = internalMessage,
-                message = new Message(_message.op, _message.d, _message.t)
+	private handleInternalMessage(internalMessage: IInternalMessage) {
+		const { message: _message, recipients: _recipients } = internalMessage,
+			message = new Message(_message.op, _message.d, _message.t)
 
-        let recipients: Client[]
+		let recipients: Client[]
 
-        if(_recipients.indexOf('*') > -1)
-            recipients = this.clients
-        else
-            recipients = this.clients.filter(client => _recipients.indexOf(client.id) > -1)
+		if (_recipients.indexOf('*') > -1)
+			recipients = this.clients
+		else
+			recipients = this.clients.filter(client => _recipients.indexOf(client.id) > -1)
 
-        recipients.forEach(client => client.send(message, true))
-    }
+		recipients.forEach(client => client.send(message, true))
+	}
 
-    private fetchClientConfig() {
-        const config: ClientConnectionConfig = {},
-                { serverOptions, clientConfig, authenticationConfig } = this,
-                rules: Rule[] = parseRules({ serverOptions, clientConfig, authenticationConfig })
+	private fetchClientConfig() {
+		const config: IClientConnectionConfig = {},
+			{ serverOptions, clientConfig, authenticationConfig } = this,
+			rules: Rule[] = parseRules({ serverOptions, clientConfig, authenticationConfig })
 
-        if(this.heartbeatConfig.enabled)
-            config.c_heartbeat_interval = this.heartbeatConfig.interval
+		if (this.heartbeatConfig.enabled)
+			config.c_heartbeat_interval = this.heartbeatConfig.interval
 
-        if(this.reconnectConfig.enabled)
-            config.c_reconnect_interval = this.reconnectConfig.interval
+		if (this.reconnectConfig.enabled)
+			config.c_reconnect_interval = this.reconnectConfig.interval
 
-        if(this.authenticationConfig.timeout)
-            config.c_authentication_timeout = this.authenticationConfig.timeout
+		if (this.authenticationConfig.timeout)
+			config.c_authentication_timeout = this.authenticationConfig.timeout
 
-        if(rules.length > 0)
-            config.rules = rules
+		if (rules.length > 0)
+			config.rules = rules
 
-        return config
-    }
+		return config
+	}
 }
 
 export default Server

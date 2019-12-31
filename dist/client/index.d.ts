@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
-import Message, { Messages } from '../server/message';
-interface ClientConfig {
+import Message, { IMessages } from '../server/message';
+interface IClientConfig {
     autoConnect?: boolean;
 }
 declare interface Client extends EventEmitter {
@@ -12,9 +12,9 @@ declare interface Client extends EventEmitter {
 }
 declare class Client extends EventEmitter {
     url: string;
-    private config;
     authenticated: boolean;
-    messages: Messages;
+    messages: IMessages;
+    private config;
     private ws;
     private queue;
     private rules;
@@ -23,13 +23,13 @@ declare class Client extends EventEmitter {
     private reconnectionInterval;
     private reconnectionIntervalTime;
     private authenticationResolve;
-    constructor(url: string, config?: ClientConfig);
-    private parseConfig;
+    constructor(url: string, config?: IClientConfig);
     connect: () => Promise<unknown>;
-    private connectAndSupressWarnings;
     send(message: Message): number;
-    authenticate: (data: Object) => Promise<unknown>;
+    authenticate: (data: object) => Promise<unknown>;
     disconnect(code?: number, data?: string): void;
+    private parseConfig;
+    private connectAndSupressWarnings;
     private registerOpen;
     private registerMessage;
     private registerClose;

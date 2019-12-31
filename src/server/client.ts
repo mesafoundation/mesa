@@ -1,173 +1,177 @@
-import WebSocket from 'ws'
 import { EventEmitter } from 'events'
+import WebSocket from 'ws'
 
 import Server from '.'
-import Message, { IMessage, Messages } from './message'
+import Message, { IMessage, IMessages } from './message'
 
 export type Rule = 'enforce_equal_versions' | 'store_messages' | 'sends_user_object'
 
-export interface ClientConnectionConfig {
-    c_heartbeat_interval?: number
-    c_reconnect_interval?: number
-    c_authentication_timeout?: number
+export interface IClientConnectionConfig {
+	c_heartbeat_interval?: number
+	c_reconnect_interval?: number
+	c_authentication_timeout?: number
 
-    rules?: Rule[]
+	rules?: Rule[]
 }
 
-interface AuthenticationResult {
-    id: string
-    user: any
+interface IAuthenticationResult {
+	id: string
+	user: any
 }
 
 type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void
-type AuthenticationDoneCallback = (error: Error, user?: AuthenticationResult) => void
+type AuthenticationDoneCallback = (error: Error, user?: IAuthenticationResult) => void
 
+// tslint:disable-next-line: interface-name
 declare interface Client extends EventEmitter {
-    on(event: 'message', listener: (this: Server, message: Message) => void): this
-    on(event: 'disconnect', listener: (this: Server, code: number, reason: string) => void): this
+	on(event: 'message', listener: (this: Server, message: Message) => void): this
+	on(event: 'disconnect', listener: (this: Server, code: number, reason: string) => void): this
 }
 
 class Client extends EventEmitter {
-    id: string
-    user: any
+	public id: string
+	public user: any
 
-    authenticated: boolean = false
+	public authenticated: boolean = false
 
-    socket: WebSocket
+	public socket: WebSocket
 
-    messages: Messages = { sent: [], recieved: [] }
+	public messages: IMessages = { sent: [], recieved: [] }
 
-    server: Server
+	public server: Server
 
-    private heartbeatInterval: any
-    private heartbeatCount: number = 0
-    private heartbeatMaxAttempts: number
-    private heartbeatAttempts: number = 0
-    private heartbeatBuffer: Message[] = []
+	public authenticationCheck: AuthenticationCallback
 
-    authenticationCheck: AuthenticationCallback
+	private heartbeatInterval: any
+	private heartbeatCount: number = 0
+	private heartbeatMaxAttempts: number
+	private heartbeatAttempts: number = 0
+	private heartbeatBuffer: Message[] = []
 
-    constructor(socket: WebSocket, server: Server) {
-        super()
+	constructor(socket: WebSocket, server: Server) {
+		super()
 
-        this.socket = socket
-        this.server = server
+		this.socket = socket
+		this.server = server
 
-        this.setup()
-    }
+		this.setup()
+	}
 
-    private setup() {
-        const { socket } = this
+	public send(message: Message, pubSub: boolean = false) {
+		if (this.server.redis && !this.id)
+			console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API. Please use this API in order to enable pub/sub')
 
-        if(this.server.heartbeatConfig.enabled) {
-            this.heartbeatMaxAttempts = this.server.heartbeatConfig.maxAttempts || 3
-            this.heartbeatInterval = setInterval(() => this.heartbeat(), this.server.heartbeatConfig.interval)
-        }
+		if (this.server.serverOptions.storeMessages)
+			this.messages.sent.push(message)
 
-        socket.on('message', data => this.registerMessage(data))
-        socket.on('close', (code, reason) => this.registerDisconnection(code, reason))
-    }
+		if (!this.server.redis || !this.id || pubSub)
+			return this.socket.send(message.serialize())
 
-    send(message: Message, pubSub: boolean = false) {
-        if(this.server.redis && !this.id)
-            console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API. Please use this API in order to enable pub/sub')
+		this.server.publisher.publish(
+			this.server.pubSubNamespace(),
+			JSON.stringify({ message: message.serialize(true), recipients: [this.id] })
+		)
+	}
 
-        if(this.server.serverOptions.storeMessages)
-            this.messages.sent.push(message)
+	public authenticate(callback: AuthenticationCallback) {
+		this.authenticationCheck = callback
+	}
 
-        if(!this.server.redis || !this.id || pubSub)
-            return this.socket.send(message.serialize())
+	public updateUser(update: IAuthenticationResult) {
+		if (!this.authenticated) throw new Error('This user hasn\'t been authenticated yet')
 
-        this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id] }))
-    }
+		this.registerAuthentication(null, update)
+	}
 
-    private heartbeat() {
-        if(this.heartbeatBuffer.length > 0 || this.heartbeatCount === 0) {
-            this.heartbeatBuffer = []
-            this.heartbeatAttempts = 0
+	public disconnect(code?: number) {
+		this.socket.close(code)
+	}
 
-            this.send(new Message(1, {}))
-        } else {
-            this.heartbeatAttempts += 1
+	private setup() {
+		const { socket } = this
 
-            if(this.heartbeatAttempts > this.heartbeatMaxAttempts) return this.disconnect()
-            this.send(new Message(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }))
-        }
+		if (this.server.heartbeatConfig.enabled) {
+			this.heartbeatMaxAttempts = this.server.heartbeatConfig.maxAttempts || 3
+			this.heartbeatInterval = setInterval(() => this.heartbeat(), this.server.heartbeatConfig.interval)
+		}
 
-        this.heartbeatCount += 1
-    }
+		socket.on('message', data => this.registerMessage(data))
+		socket.on('close', (code, reason) => this.registerDisconnection(code, reason))
+	}
 
-    authenticate(callback: AuthenticationCallback) {
-        this.authenticationCheck = callback
-    }
+	private heartbeat() {
+		if (this.heartbeatBuffer.length > 0 || this.heartbeatCount === 0) {
+			this.heartbeatBuffer = []
+			this.heartbeatAttempts = 0
 
-    updateUser(update: AuthenticationResult) {
-        if(!this.authenticated) throw 'This user hasn\'t been authenticated yet'
+			this.send(new Message(1, {}))
+		} else {
+			this.heartbeatAttempts += 1
 
-        this.registerAuthentication(null, update)
-    }
+			if (this.heartbeatAttempts > this.heartbeatMaxAttempts) return this.disconnect()
+			this.send(new Message(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }))
+		}
 
-    private registerMessage(data: WebSocket.Data) {
-        let json: IMessage
+		this.heartbeatCount += 1
+	}
 
-        try {
-            json = JSON.parse(data.toString())
-        } catch(error) {
-            throw error
-        }
+	private registerMessage(data: WebSocket.Data) {
+		let json: IMessage
 
-        const { op, d, t } = json, message = new Message(op, d, t)
+		try {
+			json = JSON.parse(data.toString())
+		} catch (error) {
+			throw error
+		}
 
-        if(op === 2 && this.authenticationCheck)
-            return this.authenticationCheck(d, (error, result) => this.registerAuthentication(error, result))
-        else if(op === 11)
-            return this.heartbeatBuffer.push(message)
+		const { op, d, t } = json, message = new Message(op, d, t)
 
-        this.emit('message', message)
-        this.server.emit('message', message)
+		if (op === 2 && this.authenticationCheck)
+			return this.authenticationCheck(d, (error, result) => this.registerAuthentication(error, result))
+		else if (op === 11)
+			return this.heartbeatBuffer.push(message)
 
-        if(this.server.serverOptions.storeMessages)
-            this.messages.recieved.push(message)
-    }
+		this.emit('message', message)
+		this.server.emit('message', message)
 
-    private registerAuthentication(error: any, result: AuthenticationResult) {
-        if(error && this.server.authenticationConfig.disconnectOnFail)
-            return this.disconnect(1008)
+		if (this.server.serverOptions.storeMessages)
+			this.messages.recieved.push(message)
+	}
 
-        const { id, user } = result
-        if(!id) throw 'No user id supplied in result callback'
-        if(!user) throw 'No user object supplied in result callback'
+	private registerAuthentication(error: any, result: IAuthenticationResult) {
+		if (error && this.server.authenticationConfig.disconnectOnFail)
+			return this.disconnect(1008)
 
-        this.id = id
-        this.user = user
+		const { id, user } = result
+		if (!id) throw new Error('No user id supplied in result callback')
+		if (!user) throw new Error('No user object supplied in result callback')
 
-        if(this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
-            this.server.redis.sadd(this.clientNamespace(), id)
+		this.id = id
+		this.user = user
 
-        if(!this.authenticated)
-            this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}))
+		if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
+			this.server.redis.sadd(this.clientNamespace(), id)
 
-        this.authenticated = true
-    }
+		if (!this.authenticated)
+			this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}))
 
-    private registerDisconnection(code: number, reason?: string) {
-        if(this.heartbeatInterval)
-            clearInterval(this.heartbeatInterval)
+		this.authenticated = true
+	}
 
-        if(this.id && this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
-            this.server.redis.srem(this.clientNamespace(), this.id)
-    
-        this.emit('disconnect', code, reason)
-        this.server.emit('disconnection', code, reason)
-    }
+	private registerDisconnection(code: number, reason?: string) {
+		if (this.heartbeatInterval)
+			clearInterval(this.heartbeatInterval)
 
-    private clientNamespace() {
-        return this.server.namespace ? `undelivered_events-${this.server.namespace}` : 'undelivered_events'
-    }
+		if (this.id && this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
+			this.server.redis.srem(this.clientNamespace(), this.id)
 
-    disconnect(code?: number) {
-        this.socket.close(code)
-    }
+		this.emit('disconnect', code, reason)
+		this.server.emit('disconnection', code, reason)
+	}
+
+	private clientNamespace() {
+		return this.server.namespace ? `undelivered_events-${this.server.namespace}` : 'undelivered_events'
+	}
 }
 
 export default Client

@@ -1,21 +1,21 @@
 /// <reference types="node" />
-import WebSocket from 'ws';
 import { EventEmitter } from 'events';
+import WebSocket from 'ws';
 import Server from '.';
-import Message, { Messages } from './message';
+import Message, { IMessages } from './message';
 export declare type Rule = 'enforce_equal_versions' | 'store_messages' | 'sends_user_object';
-export interface ClientConnectionConfig {
+export interface IClientConnectionConfig {
     c_heartbeat_interval?: number;
     c_reconnect_interval?: number;
     c_authentication_timeout?: number;
     rules?: Rule[];
 }
-interface AuthenticationResult {
+interface IAuthenticationResult {
     id: string;
     user: any;
 }
 declare type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void;
-declare type AuthenticationDoneCallback = (error: Error, user?: AuthenticationResult) => void;
+declare type AuthenticationDoneCallback = (error: Error, user?: IAuthenticationResult) => void;
 declare interface Client extends EventEmitter {
     on(event: 'message', listener: (this: Server, message: Message) => void): this;
     on(event: 'disconnect', listener: (this: Server, code: number, reason: string) => void): this;
@@ -25,24 +25,24 @@ declare class Client extends EventEmitter {
     user: any;
     authenticated: boolean;
     socket: WebSocket;
-    messages: Messages;
+    messages: IMessages;
     server: Server;
+    authenticationCheck: AuthenticationCallback;
     private heartbeatInterval;
     private heartbeatCount;
     private heartbeatMaxAttempts;
     private heartbeatAttempts;
     private heartbeatBuffer;
-    authenticationCheck: AuthenticationCallback;
     constructor(socket: WebSocket, server: Server);
-    private setup;
     send(message: Message, pubSub?: boolean): void;
-    private heartbeat;
     authenticate(callback: AuthenticationCallback): void;
-    updateUser(update: AuthenticationResult): void;
+    updateUser(update: IAuthenticationResult): void;
+    disconnect(code?: number): void;
+    private setup;
+    private heartbeat;
     private registerMessage;
     private registerAuthentication;
     private registerDisconnection;
     private clientNamespace;
-    disconnect(code?: number): void;
 }
 export default Client;

@@ -17,15 +17,6 @@ class Client extends events_1.EventEmitter {
         this.server = server;
         this.setup();
     }
-    setup() {
-        const { socket } = this;
-        if (this.server.heartbeatConfig.enabled) {
-            this.heartbeatMaxAttempts = this.server.heartbeatConfig.maxAttempts || 3;
-            this.heartbeatInterval = setInterval(() => this.heartbeat(), this.server.heartbeatConfig.interval);
-        }
-        socket.on('message', data => this.registerMessage(data));
-        socket.on('close', (code, reason) => this.registerDisconnection(code, reason));
-    }
     send(message, pubSub = false) {
         if (this.server.redis && !this.id)
             console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API. Please use this API in order to enable pub/sub');
@@ -34,6 +25,26 @@ class Client extends events_1.EventEmitter {
         if (!this.server.redis || !this.id || pubSub)
             return this.socket.send(message.serialize());
         this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id] }));
+    }
+    authenticate(callback) {
+        this.authenticationCheck = callback;
+    }
+    updateUser(update) {
+        if (!this.authenticated)
+            throw new Error('This user hasn\'t been authenticated yet');
+        this.registerAuthentication(null, update);
+    }
+    disconnect(code) {
+        this.socket.close(code);
+    }
+    setup() {
+        const { socket } = this;
+        if (this.server.heartbeatConfig.enabled) {
+            this.heartbeatMaxAttempts = this.server.heartbeatConfig.maxAttempts || 3;
+            this.heartbeatInterval = setInterval(() => this.heartbeat(), this.server.heartbeatConfig.interval);
+        }
+        socket.on('message', data => this.registerMessage(data));
+        socket.on('close', (code, reason) => this.registerDisconnection(code, reason));
     }
     heartbeat() {
         if (this.heartbeatBuffer.length > 0 || this.heartbeatCount === 0) {
@@ -48,14 +59,6 @@ class Client extends events_1.EventEmitter {
             this.send(new message_1.default(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }));
         }
         this.heartbeatCount += 1;
-    }
-    authenticate(callback) {
-        this.authenticationCheck = callback;
-    }
-    updateUser(update) {
-        if (!this.authenticated)
-            throw 'This user hasn\'t been authenticated yet';
-        this.registerAuthentication(null, update);
     }
     registerMessage(data) {
         let json;
@@ -80,9 +83,9 @@ class Client extends events_1.EventEmitter {
             return this.disconnect(1008);
         const { id, user } = result;
         if (!id)
-            throw 'No user id supplied in result callback';
+            throw new Error('No user id supplied in result callback');
         if (!user)
-            throw 'No user object supplied in result callback';
+            throw new Error('No user object supplied in result callback');
         this.id = id;
         this.user = user;
         if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
@@ -101,9 +104,6 @@ class Client extends events_1.EventEmitter {
     }
     clientNamespace() {
         return this.server.namespace ? `undelivered_events-${this.server.namespace}` : 'undelivered_events';
-    }
-    disconnect(code) {
-        this.socket.close(code);
     }
 }
 exports.default = Client;

@@ -11,7 +11,11 @@ exports.parseConfig = (config, keys, values) => {
     return config;
 };
 exports.parseRules = (configs) => {
-    const { serverOptions, clientConfig, authenticationConfig } = configs, rules = [], ruleKeys = ['enforce_equal_versions', 'store_messages', 'sends_user_object'], ruleValues = [!!clientConfig.enforceEqualVersions, !!serverOptions.storeMessages, !!authenticationConfig.sendUserObject];
+    const { serverOptions, clientConfig, authenticationConfig } = configs, rules = [], ruleKeys = ['enforce_equal_versions', 'store_messages', 'sends_user_object'], ruleValues = [
+        !!clientConfig.enforceEqualVersions,
+        !!serverOptions.storeMessages,
+        !!authenticationConfig.sendUserObject
+    ];
     ruleKeys.forEach((key, i) => {
         if (!ruleValues[i])
             return;

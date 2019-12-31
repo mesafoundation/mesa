@@ -3,7 +3,7 @@ declare type Data = {
     [key in string]?: any;
 };
 declare type Type = string;
-export interface Messages {
+export interface IMessages {
     sent: Message[];
     recieved: Message[];
 }
@@ -12,10 +12,10 @@ export interface IMessage {
     d: Data;
     t?: Type;
 }
-export interface MessageOptions {
+export interface IMessageOptions {
     to?: string;
 }
-export interface InternalMessage {
+export interface IInternalMessage {
     message: IMessage;
     recipients: string[];
 }
@@ -24,8 +24,8 @@ export default class Message {
     data: Data;
     type: Type;
     raw: IMessage;
-    options: MessageOptions;
-    constructor(opcode: Opcode, data: Data, type?: Type, options?: MessageOptions);
+    options: IMessageOptions;
+    constructor(opcode: Opcode, data: Data, type?: Type, options?: IMessageOptions);
     serialize(toJson?: boolean): string | IMessage;
 }
 export {};

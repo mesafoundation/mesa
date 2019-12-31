@@ -3,11 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const ioredis_1 = __importDefault(require("ioredis"));
 const events_1 = require("events");
+const ioredis_1 = __importDefault(require("ioredis"));
 const ws_1 = __importDefault(require("ws"));
-const message_1 = __importDefault(require("./message"));
 const client_1 = __importDefault(require("./client"));
+const message_1 = __importDefault(require("./message"));
 const utils_1 = require("../utils");
 class Server extends events_1.EventEmitter {
     constructor(config) {
@@ -18,6 +18,9 @@ class Server extends events_1.EventEmitter {
     }
     send(message) {
         this.clients.forEach(client => client.send(message));
+    }
+    pubSubNamespace() {
+        return this.namespace ? `ws-${this.namespace}` : 'ws';
     }
     setup(config) {
         if (this.wss)
@@ -67,9 +70,6 @@ class Server extends events_1.EventEmitter {
                 this.emit('error', error);
             }
         }).subscribe(this.pubSubNamespace());
-    }
-    pubSubNamespace() {
-        return this.namespace ? `ws-${this.namespace}` : 'ws';
     }
     registerClient(socket) {
         const client = new client_1.default(socket, this);
