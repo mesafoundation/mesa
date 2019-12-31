@@ -100,6 +100,9 @@ class Client extends EventEmitter {
 	}
 
 	private parseConfig(config?: IClientConfig) {
+		if (!config)
+			config = {}
+
 		if (typeof config.autoConnect === 'undefined')
 			config.autoConnect = true
 
