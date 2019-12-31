@@ -103,7 +103,7 @@ class Client extends events_1.EventEmitter {
                 return;
             case 22:
                 this.authenticated = true;
-                if (this.rules.indexOf('sends_user_object') && this.authenticationResolve)
+                if (this.rules.indexOf('sends_user_object') > -1 && this.authenticationResolve)
                     this.authenticationResolve(d);
                 return;
         }
