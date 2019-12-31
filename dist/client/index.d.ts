@@ -17,6 +17,9 @@ declare class Client extends EventEmitter {
     messages: Messages;
     private ws;
     private queue;
+    private rules;
+    private heartbeatIntervalTime;
+    private authenticationTimeout;
     private reconnectionInterval;
     private reconnectionIntervalTime;
     private authenticationResolve;

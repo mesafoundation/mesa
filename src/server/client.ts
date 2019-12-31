@@ -4,10 +4,14 @@ import { EventEmitter } from 'events'
 import Server from '.'
 import Message, { IMessage, Messages } from './message'
 
+export type Rule = 'enforce_equal_versions' | 'store_messages' | 'sends_user_object'
+
 export interface ClientConnectionConfig {
     c_heartbeat_interval?: number
     c_reconnect_interval?: number
     c_authentication_timeout?: number
+
+    rules?: Rule[]
 }
 
 interface AuthenticationResult {
@@ -68,10 +72,11 @@ class Client extends EventEmitter {
         if(this.server.redis && !this.id)
             console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API. Please use this API in order to enable pub/sub')
 
-        if(!this.server.redis || !this.id || pubSub) {
+        if(this.server.serverOptions.storeMessages)
             this.messages.sent.push(message)
+
+        if(!this.server.redis || !this.id || pubSub)
             return this.socket.send(message.serialize())
-        }
 
         this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id] }))
     }
@@ -120,7 +125,9 @@ class Client extends EventEmitter {
 
         this.emit('message', message)
         this.server.emit('message', message)
-        this.messages.recieved.push(message)
+
+        if(this.server.serverOptions.storeMessages)
+            this.messages.recieved.push(message)
     }
 
     private registerAuthentication(error: any, result: AuthenticationResult) {

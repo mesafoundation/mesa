@@ -10,8 +10,8 @@ class Client extends events_1.EventEmitter {
     constructor(url, config) {
         super();
         this.authenticated = false;
-        this.messages = { sent: [], recieved: [] };
         this.queue = [];
+        this.rules = [];
         this.connect = () => new Promise((resolve, reject) => {
             if (this.reconnectionInterval)
                 clearInterval(this.reconnectionInterval);
@@ -56,7 +56,8 @@ class Client extends events_1.EventEmitter {
     send(message) {
         if (this.ws.readyState !== this.ws.OPEN)
             return this.queue.push(message);
-        this.messages.sent.push(message);
+        if (this.rules.indexOf('store_messages') > -1)
+            this.messages.sent.push(message);
         this.ws.send(message.serialize());
     }
     disconnect(code, data) {
@@ -82,18 +83,28 @@ class Client extends events_1.EventEmitter {
             case 1:
                 return this.send(new message_1.default(11, {}));
             case 10:
-                const { c_heartbeat_interval, c_reconnect_interval, c_authentication_timeout } = message.data;
+                const { c_heartbeat_interval, c_reconnect_interval, c_authentication_timeout, rules } = message.data;
+                if (c_heartbeat_interval)
+                    this.heartbeatIntervalTime = c_heartbeat_interval;
                 if (c_reconnect_interval)
                     this.reconnectionIntervalTime = c_reconnect_interval;
+                if (c_authentication_timeout)
+                    this.authenticationTimeout = c_authentication_timeout;
+                if (rules.indexOf('enforce_equal_versions') > -1)
+                    this.send(new message_1.default(0, { v: require('../package.json').version }, 'CLIENT_VERSION'));
+                if (rules.indexOf('store_messages') > -1)
+                    this.messages = { sent: [], recieved: [] };
+                this.rules = rules;
                 return;
             case 22:
                 this.authenticated = true;
-                if (this.authenticationResolve)
+                if (this.rules.indexOf('sends_user_object') && this.authenticationResolve)
                     this.authenticationResolve(d);
                 return;
         }
         this.emit('message', message);
-        this.messages.recieved.push(message);
+        if (this.rules.indexOf('store_messages') > -1)
+            this.messages.recieved.push(message);
     }
     registerClose(code, reason) {
         this.emit('disconnected', code, reason);

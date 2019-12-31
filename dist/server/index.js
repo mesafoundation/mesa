@@ -8,6 +8,7 @@ const events_1 = require("events");
 const ws_1 = __importDefault(require("ws"));
 const message_1 = __importDefault(require("./message"));
 const client_1 = __importDefault(require("./client"));
+const utils_1 = require("../utils");
 class Server extends events_1.EventEmitter {
     constructor(config) {
         super();
@@ -36,26 +37,11 @@ class Server extends events_1.EventEmitter {
             this.namespace = config.namespace;
         if (config.redis)
             this.setupRedis(config.redis);
-        // config.sync = config.sync || { enabled: false }
-        config.heartbeat = config.heartbeat || { enabled: false };
-        config.reconnect = config.reconnect || { enabled: false };
-        // if(!config.redis && config.sync.enabled) {
-        //     config.sync.enabled = false
-        //     console.warn('Mesa Sync relies on Redis to function properly. As you have not configured Redis, Sync will be disabled')
-        // }
-        if (!config.authentication) {
-            const authenticationKeys = ['sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], authenticationKeyValues = [true, true, true];
-            authenticationKeys.forEach((key, i) => {
-                if (typeof config.authentication[key])
-                    config.authentication[key] = authenticationKeyValues[i];
-            });
-        }
-        else
-            config.authentication = {};
-        // this.syncConfig = config.sync
-        this.heartbeatConfig = config.heartbeat;
-        this.reconnectConfig = config.reconnect;
-        this.authenticationConfig = config.authentication;
+        this.clientConfig = utils_1.parseConfig(config.client, ['enforceEqualVersions'], [false]);
+        this.serverOptions = utils_1.parseConfig(config.options, ['storeMessages'], [false]);
+        this.heartbeatConfig = config.heartbeat || { enabled: false };
+        this.reconnectConfig = config.reconnect || { enabled: false };
+        this.authenticationConfig = utils_1.parseConfig(config.authentication, ['timeout', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, true, true, true]);
         return config;
     }
     setupRedis(redisConfig) {
@@ -92,7 +78,6 @@ class Server extends events_1.EventEmitter {
         this.emit('connection', client);
     }
     handleInternalMessage(internalMessage) {
-        // const { message: _message, recipients: _recipients, sync } = internalMessage,
         const { message: _message, recipients: _recipients } = internalMessage, message = new message_1.default(_message.op, _message.d, _message.t);
         let recipients;
         if (_recipients.indexOf('*') > -1)
@@ -102,13 +87,15 @@ class Server extends events_1.EventEmitter {
         recipients.forEach(client => client.send(message, true));
     }
     fetchClientConfig() {
-        const config = {};
+        const config = {}, { serverOptions, clientConfig, authenticationConfig } = this, rules = utils_1.parseRules({ serverOptions, clientConfig, authenticationConfig });
         if (this.heartbeatConfig.enabled)
             config.c_heartbeat_interval = this.heartbeatConfig.interval;
         if (this.reconnectConfig.enabled)
             config.c_reconnect_interval = this.reconnectConfig.interval;
         if (this.authenticationConfig.timeout)
             config.c_authentication_timeout = this.authenticationConfig.timeout;
+        if (rules.length > 0)
+            config.rules = rules;
         return config;
     }
 }

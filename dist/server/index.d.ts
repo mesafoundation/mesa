@@ -1,22 +1,28 @@
 /// <reference types="node" />
 import http from 'http';
-import https from 'http';
+import https from 'https';
 import Redis from 'ioredis';
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
 import Message from './message';
 import Client from './client';
 declare type RedisConfig = string | Redis.RedisOptions;
-interface HeartbeatConfig {
+export interface ClientConfig {
+    enforceEqualVersions?: boolean;
+}
+export interface ServerOptions {
+    storeMessages?: boolean;
+}
+export interface HeartbeatConfig {
     enabled: boolean;
     interval?: 10000 | number;
     maxAttempts?: 3 | number;
 }
-interface ReconnectConfig {
+export interface ReconnectConfig {
     enabled: boolean;
     interval?: 5000 | number;
 }
-interface AuthenticationConfig {
+export interface AuthenticationConfig {
     timeout?: 10000 | number;
     sendUserObject?: boolean;
     disconnectOnFail?: boolean;
@@ -27,6 +33,8 @@ interface ServerConfig {
     namespace?: string;
     redis?: RedisConfig;
     server?: http.Server | https.Server;
+    client?: ClientConfig;
+    options?: ServerOptions;
     heartbeat?: HeartbeatConfig;
     reconnect?: ReconnectConfig;
     authentication?: AuthenticationConfig;
@@ -43,6 +51,8 @@ declare class Server extends EventEmitter {
     redis: Redis.Redis;
     publisher: Redis.Redis;
     subscriber: Redis.Redis;
+    clientConfig: ClientConfig;
+    serverOptions: ServerOptions;
     heartbeatConfig: HeartbeatConfig;
     reconnectConfig: ReconnectConfig;
     authenticationConfig: AuthenticationConfig;

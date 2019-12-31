@@ -2,7 +2,7 @@ import WebSocket from 'ws'
 import { EventEmitter } from 'events'
 
 import Message, { IMessage, Messages } from '../server/message'
-import { ClientConnectionConfig } from '../server/client'
+import { ClientConnectionConfig, Rule } from '../server/client'
 
 interface ClientConfig {
     autoConnect?: boolean
@@ -22,11 +22,16 @@ class Client extends EventEmitter {
 
     authenticated: boolean = false
 
-    messages: Messages = { sent: [], recieved: [] }
+    messages: Messages
 
     private ws: WebSocket
     private queue: Message[] = []
     
+    private rules: Rule[] = []
+
+    private heartbeatIntervalTime: number
+    private authenticationTimeout: number
+
     private reconnectionInterval: NodeJS.Timeout
     private reconnectionIntervalTime: number
 
@@ -90,7 +95,9 @@ class Client extends EventEmitter {
         if(this.ws.readyState !== this.ws.OPEN)
             return this.queue.push(message)
 
-        this.messages.sent.push(message)
+        if(this.rules.indexOf('store_messages') > -1)
+            this.messages.sent.push(message)
+        
         this.ws.send(message.serialize())
     }
 
@@ -127,23 +134,41 @@ class Client extends EventEmitter {
             case 1:
                 return this.send(new Message(11, {}))
             case 10:
-                const { c_heartbeat_interval, c_reconnect_interval, c_authentication_timeout } = message.data as ClientConnectionConfig
+                const { c_heartbeat_interval, c_reconnect_interval, c_authentication_timeout, rules } = message.data as ClientConnectionConfig
+
+                if(c_heartbeat_interval)
+                    this.heartbeatIntervalTime = c_heartbeat_interval
 
                 if(c_reconnect_interval)
                     this.reconnectionIntervalTime = c_reconnect_interval
+
+                if(c_authentication_timeout)
+                    this.authenticationTimeout = c_authentication_timeout
+
+                if(rules.indexOf('enforce_equal_versions') > -1)
+                    this.send(
+                        new Message(0, { v: require('../package.json').version }, 'CLIENT_VERSION')
+                    )
+
+                if(rules.indexOf('store_messages') > -1)
+                    this.messages = { sent: [], recieved: [] }
+
+                this.rules = rules
 
                 return
             case 22:
                 this.authenticated = true
 
-                if(this.authenticationResolve)
+                if(this.rules.indexOf('sends_user_object') && this.authenticationResolve)
                     this.authenticationResolve(d)
                 
                 return
         }
 
         this.emit('message', message)
-        this.messages.recieved.push(message)
+
+        if(this.rules.indexOf('store_messages') > -1)
+            this.messages.recieved.push(message)
     }
 
     private registerClose(code?: number, reason?: string) {

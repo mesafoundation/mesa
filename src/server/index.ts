@@ -1,29 +1,39 @@
 import http from 'http'
-import https from 'http'
+import https from 'https'
 
 import Redis from 'ioredis'
 import { EventEmitter } from 'events'
 import WebSocket, { ServerOptions as WSOptions } from 'ws'
 
 import Message, { InternalMessage } from './message'
-import Client, { ClientConnectionConfig } from './client'
+import Client, { Rule, ClientConnectionConfig } from './client'
+
+import { parseRules, parseConfig } from '../utils'
 
 type RedisConfig = string | Redis.RedisOptions
 
-interface HeartbeatConfig {
+export interface ClientConfig {
+    enforceEqualVersions?: boolean
+}
+
+export interface ServerOptions {
+    storeMessages?: boolean
+}
+
+export interface HeartbeatConfig {
     enabled: boolean
 
     interval?: 10000 | number
     maxAttempts?: 3 | number
 }
 
-interface ReconnectConfig {
+export interface ReconnectConfig {
     enabled: boolean
 
     interval?: 5000 | number
 }
 
-interface AuthenticationConfig {
+export interface AuthenticationConfig {
     timeout?: 10000 | number
 
     sendUserObject?: boolean
@@ -37,6 +47,9 @@ interface ServerConfig {
 
     redis?: RedisConfig
     server?: http.Server | https.Server
+
+    client?: ClientConfig
+    options?: ServerOptions
 
     heartbeat?: HeartbeatConfig
     reconnect?: ReconnectConfig
@@ -58,6 +71,9 @@ class Server extends EventEmitter {
     redis: Redis.Redis
     publisher: Redis.Redis
     subscriber: Redis.Redis
+
+    clientConfig: ClientConfig
+    serverOptions: ServerOptions
 
     heartbeatConfig: HeartbeatConfig
     reconnectConfig: ReconnectConfig
@@ -100,23 +116,12 @@ class Server extends EventEmitter {
         if(config.redis)
             this.setupRedis(config.redis)
 
-        config.heartbeat = config.heartbeat || { enabled: false }
-        config.reconnect = config.reconnect || { enabled: false }
+        this.clientConfig = parseConfig(config.client, ['enforceEqualVersions'], [false])
+        this.serverOptions = parseConfig(config.options, ['storeMessages'], [false])
 
-        if(!config.authentication) {
-            const authenticationKeys = ['sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'],
-                    authenticationKeyValues = [true, true, true]
-
-            authenticationKeys.forEach((key, i) => {
-                if(typeof config.authentication[key])
-                    config.authentication[key] = authenticationKeyValues[i]
-            })
-        } else
-            config.authentication = {}
-
-        this.heartbeatConfig = config.heartbeat
-        this.reconnectConfig = config.reconnect
-        this.authenticationConfig = config.authentication
+        this.heartbeatConfig = config.heartbeat || { enabled: false }
+        this.reconnectConfig = config.reconnect || { enabled: false }
+        this.authenticationConfig = parseConfig(config.authentication, ['timeout', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, true, true, true])
 
         return config
     }
@@ -177,7 +182,9 @@ class Server extends EventEmitter {
     }
 
     private fetchClientConfig() {
-        const config: ClientConnectionConfig = {}
+        const config: ClientConnectionConfig = {},
+                { serverOptions, clientConfig, authenticationConfig } = this,
+                rules: Rule[] = parseRules({ serverOptions, clientConfig, authenticationConfig })
 
         if(this.heartbeatConfig.enabled)
             config.c_heartbeat_interval = this.heartbeatConfig.interval
@@ -187,6 +194,9 @@ class Server extends EventEmitter {
 
         if(this.authenticationConfig.timeout)
             config.c_authentication_timeout = this.authenticationConfig.timeout
+
+        if(rules.length > 0)
+            config.rules = rules
 
         return config
     }

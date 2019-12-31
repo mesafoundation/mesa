@@ -29,12 +29,11 @@ class Client extends events_1.EventEmitter {
     send(message, pubSub = false) {
         if (this.server.redis && !this.id)
             console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API. Please use this API in order to enable pub/sub');
-        if (!this.server.redis || !this.id || pubSub) {
+        if (this.server.serverOptions.storeMessages)
             this.messages.sent.push(message);
+        if (!this.server.redis || !this.id || pubSub)
             return this.socket.send(message.serialize());
-        }
         this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id] }));
-        // this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id], sync: !!message.options.sync }))
     }
     heartbeat() {
         if (this.heartbeatBuffer.length > 0 || this.heartbeatCount === 0) {
@@ -73,7 +72,8 @@ class Client extends events_1.EventEmitter {
             return this.heartbeatBuffer.push(message);
         this.emit('message', message);
         this.server.emit('message', message);
-        this.messages.recieved.push(message);
+        if (this.server.serverOptions.storeMessages)
+            this.messages.recieved.push(message);
     }
     registerAuthentication(error, result) {
         if (error && this.server.authenticationConfig.disconnectOnFail)

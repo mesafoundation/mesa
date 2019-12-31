@@ -3,10 +3,12 @@ import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 import Server from '.';
 import Message, { Messages } from './message';
+export declare type Rule = 'enforce_equal_versions' | 'store_messages' | 'sends_user_object';
 export interface ClientConnectionConfig {
     c_heartbeat_interval?: number;
     c_reconnect_interval?: number;
     c_authentication_timeout?: number;
+    rules?: Rule[];
 }
 interface AuthenticationResult {
     id: string;
