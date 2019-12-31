@@ -38,8 +38,10 @@ In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub,
 
 #### Planned Features
 * Message sync support
+* Better error reporting
 * Plugin / middleware support
 * Better disconnection handling
+* Universal message dispatch support
 
 ### Status
 `@cryb/mesa` has been actively developed since December 2019.

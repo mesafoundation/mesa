@@ -6,7 +6,7 @@ import Redis from 'ioredis';
 import WebSocket from 'ws';
 import Client from './client';
 import Message from './message';
-declare type RedisConfig = string | Redis.RedisOptions;
+export declare type RedisConfig = string | Redis.RedisOptions;
 export interface IClientConfig {
     enforceEqualVersions?: boolean;
 }

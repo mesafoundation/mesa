@@ -12,6 +12,7 @@
 		"curly": [true, "as-needed"],
 		"semicolon": [true, "never"],
 		"quotemark": [true, "single"],
+		"max-classes-per-file": false,
 		"typedef": [true, "parameter"],
 		"trailing-comma": [true, "never"],
 		"object-literal-sort-keys": false,

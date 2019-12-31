@@ -9,8 +9,9 @@ import Client, { IClientConnectionConfig, Rule } from './client'
 import Message, { IInternalMessage } from './message'
 
 import { parseConfig, parseRules } from '../utils'
+import { createRedisClient } from '../utils/helpers.util'
 
-type RedisConfig = string | Redis.RedisOptions
+export type RedisConfig = string | Redis.RedisOptions
 
 export interface IClientConfig {
 	enforceEqualVersions?: boolean
@@ -132,19 +133,9 @@ class Server extends EventEmitter {
 	}
 
 	private setupRedis(redisConfig: RedisConfig) {
-		let redis: Redis.Redis,
-			publisher: Redis.Redis,
-			subscriber: Redis.Redis
-
-		if (typeof redisConfig === 'string') {
-			redis = new Redis(redisConfig)
-			publisher = new Redis(redisConfig)
-			subscriber = new Redis(redisConfig)
-		} else {
-			redis = new Redis(redisConfig)
-			publisher = new Redis(redisConfig)
-			subscriber = new Redis(redisConfig)
-		}
+		const redis: Redis.Redis = createRedisClient(redisConfig),
+			publisher: Redis.Redis = createRedisClient(redisConfig),
+			subscriber: Redis.Redis = createRedisClient(redisConfig)
 
 		this.redis = redis
 		this.publisher = publisher

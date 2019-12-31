@@ -4,11 +4,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
-const ioredis_1 = __importDefault(require("ioredis"));
 const ws_1 = __importDefault(require("ws"));
 const client_1 = __importDefault(require("./client"));
 const message_1 = __importDefault(require("./message"));
 const utils_1 = require("../utils");
+const helpers_util_1 = require("../utils/helpers.util");
 class Server extends events_1.EventEmitter {
     constructor(config) {
         super();
@@ -48,17 +48,7 @@ class Server extends events_1.EventEmitter {
         return config;
     }
     setupRedis(redisConfig) {
-        let redis, publisher, subscriber;
-        if (typeof redisConfig === 'string') {
-            redis = new ioredis_1.default(redisConfig);
-            publisher = new ioredis_1.default(redisConfig);
-            subscriber = new ioredis_1.default(redisConfig);
-        }
-        else {
-            redis = new ioredis_1.default(redisConfig);
-            publisher = new ioredis_1.default(redisConfig);
-            subscriber = new ioredis_1.default(redisConfig);
-        }
+        const redis = helpers_util_1.createRedisClient(redisConfig), publisher = helpers_util_1.createRedisClient(redisConfig), subscriber = helpers_util_1.createRedisClient(redisConfig);
         this.redis = redis;
         this.publisher = publisher;
         this.subscriber = subscriber;
