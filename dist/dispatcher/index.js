@@ -8,13 +8,13 @@ const __1 = require("..");
 const helpers_util_1 = require("../utils/helpers.util");
 class Dispatcher {
     constructor(redis, config) {
-        this.dispatch = (event, recipients) => {
+        this.dispatch = (event, recipients = []) => {
             switch (event.constructor.name) {
                 case __1.Message.name:
-                    this.dispatchMessage(event, recipients || []);
+                    this.dispatchMessage(event, recipients);
                     break;
                 case event_1.default.name:
-                    this.dispatchEvent(event);
+                    this.dispatchEvent(event, recipients);
                     break;
                 default:
                     throw new Error('No dispatch handler found');
@@ -37,8 +37,11 @@ class Dispatcher {
             recipients
         }));
     }
-    dispatchEvent(event) {
-        console.warn('Dispatching events currently not supported');
+    dispatchEvent(event, recipients) {
+        this.publisher.publish(this.fetchNamespace(), JSON.stringify({
+            message: event.serialize(true),
+            recipients
+        }));
     }
 }
 exports.default = Dispatcher;

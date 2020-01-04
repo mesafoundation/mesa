@@ -13,6 +13,6 @@ client.on('message', (data, type) => {
     console.log('Recieved', data, type)
 })
 
-client.on('disconnect', () => {
-    console.log('Disconnected from Mesa')
+client.on('disconnected', (code, reason) => {
+    console.log('Disconnected from Mesa', code, reason)
 })

@@ -1,12 +1,17 @@
+import { Message } from '..'
+
 export type DispatchAction = 'DISCONNECT_CLIENT'
-export type DispatchTarget = string
 
 export default class DispatchEvent {
 	public action: DispatchAction
-	public target: DispatchTarget
 
-	constructor(action: DispatchAction, target: DispatchTarget) {
+	constructor(action: DispatchAction) {
 		this.action = action
-		this.target = target
+	}
+
+	public serialize = (toJson: boolean = false) => {
+		const message = new Message(5, {}, this.action)
+
+		return message.serialize(toJson)
 	}
 }

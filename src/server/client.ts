@@ -60,6 +60,15 @@ class Client extends EventEmitter {
 	}
 
 	public send(message: Message, pubSub: boolean = false) {
+		if (message.opcode === 5) {
+			switch (message.type) {
+				case 'DISCONNECT_CLIENT':
+					this.disconnect(1000)
+			}
+
+			return
+		}
+
 		if (this.server.redis && !this.id)
 			console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API. Please use this API in order to enable pub/sub')
 
@@ -136,7 +145,7 @@ class Client extends EventEmitter {
 					if (v !== getVersion() && this.server.clientConfig.enforceEqualVersions)
 						return this.disconnect(1002)
 			}
-		if (op === 2 && this.authenticationCheck)
+		else if (op === 2 && this.authenticationCheck)
 			return this.authenticationCheck(d, (error, result) => this.registerAuthentication(error, result))
 		else if (op === 11)
 			return this.heartbeatBuffer.push(message)

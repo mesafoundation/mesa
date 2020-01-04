@@ -23,13 +23,13 @@ class Dispatcher {
 		this.config = this.parseConfig(config)
 	}
 
-	public dispatch = (event: Dispatchable, recipients?: string[]) => {
+	public dispatch = (event: Dispatchable, recipients: string[] = []) => {
 		switch (event.constructor.name) {
 			case Message.name:
-				this.dispatchMessage(event as Message, recipients || [])
+				this.dispatchMessage(event as Message, recipients)
 				break
 			case DispatchEvent.name:
-				this.dispatchEvent(event as DispatchEvent)
+				this.dispatchEvent(event as DispatchEvent, recipients)
 				break
 			default:
 				throw new Error('No dispatch handler found')
@@ -50,8 +50,14 @@ class Dispatcher {
 		)
 	}
 
-	private dispatchEvent(event: Dispatchable) {
-		console.warn('Dispatching events currently not supported')
+	private dispatchEvent(event: Dispatchable, recipients: string[]) {
+		this.publisher.publish(
+			this.fetchNamespace(),
+			JSON.stringify({
+				message: event.serialize(true),
+				recipients
+			} as IInternalMessage)
+		)
 	}
 
 	private parseConfig = (config?: IDispatcherConfig) => {

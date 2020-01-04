@@ -4,7 +4,7 @@ const { default: Mesa, Message } = require('../dist')
 
 const mesa = new Mesa({
     port: 4000,
-    redis: 'redis://localhost:6379/1',
+    redis: 'redis://localhost:6379',
 
     reconnect: {
         enabled: true,
@@ -28,7 +28,7 @@ mesa.on('connection', client => {
         } catch(error) {
             done(error)
         }
-    })
+	})
 
     client.on('message', message => {
         const { data, type } = message
