@@ -31,7 +31,12 @@ mesa.on('connection', client => {
 	})
 
     client.on('message', message => {
-        const { data, type } = message
+		const { data, type } = message
+		
+		switch (type) {
+			case 'PING':
+				client.send(new Message(0, {}, 'PONG'))
+		}
 
         console.log('Recieved', data, type, 'from', client.id || 'client')
     })
