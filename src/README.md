@@ -35,13 +35,13 @@ In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub,
 * Heartbeat support
 * Reconnection support
 * Authentication support
+* Global dispatch events
 
 #### Planned Features
 * Message sync support
 * Better error reporting
 * Plugin / middleware support
 * Better disconnection handling
-* Universal message dispatch support
 
 ### Status
 `@cryb/mesa` has been actively developed since December 2019.
@@ -111,7 +111,7 @@ We provide expansive configuration support for customising Mesa to your needs. H
 		// Optional: interval in ms for how often heartbeats should be sent to clients. Defaults to 10000ms
 		interval?: number
 		// Optional: how many heartbeats Mesa should send before closing the connection. Defaults to 3
-	maxAttempts?: number
+		maxAttempts?: number
 	}
 	// Optional
 	reconnect?: {
@@ -162,24 +162,39 @@ Mesa supports client authentication through a simple API that can adapt to suppo
 ```js
 const server = new Mesa({
 	port: 4000,
-	namespace: 'api', // Optional: supply a namespace so different Mesa servers running on a cluster don't interfere with each other
-	redis: 'redis://localhost:6379' // Optional: supply a Redis URI to make full use of Authentication via Pub/Sub
+	/**
+	 * Optional: supply a namespace so different Mesa servers running on a cluster don't interfere with each other
+	 */
+	namespace: 'api',
+	/**
+	 * Optional: supply a Redis URI to make full use of Authentication via Pub/Sub
+	 */
+	redis: 'redis://localhost:6379'
 })
 
 mesa.on('connection', client => {
-	// When a client connects and sends an authentication message, it can be handled here.
-	// This authentication method takes in a callback that is called with two parameters: data (sent from the client) and done (supplied by Mesa).
-	// This method is called when a client sends a opcode 2 message. For example, it would look like {"op": 2, d: { "token": ... }}
+	/**
+	 * When a client connects and sends an authentication message, it can be handled here.
+	 * 
+	 * This authentication method takes in a callback that is called with two parameters: data (sent from the client) and done (supplied by Mesa).
+	 * 
+	 * This method is called when a client sends a opcode 2 message. For example, it would look like {"op": 2, d: { "token": ... }}
+	 */
 	client.authenticate(async ({ token }, done) => {
 		try {
-			// Once authentication data has been supplied from the client message, you can authenticate via a call to a microservice or database lookup
+			/**
+			 * Once authentication data has been supplied from the client message, you can authenticate via a call to a microservice or database lookup
+			 */
 			const { data: user } = await axios.post('http://localhost:4500', { token }),
 				{ info: { id } } = user
 
-			// Once you have authenticated the user, call the done method supplied in the callback with two parameters.
-			// The first parameter should be an error incase there was an issue authenticating this user. If there was no issue, supply null.
-			// The second parameter should be an object containing the user ID and the user object. The user ID will be used for Redis Pub/Sub and will ...
-			// ... be available in the client.id property. If there was an error, do not supply this value or simply supply null
+			/**
+			 * Once you have authenticated the user, call the done method supplied in the callback with two parameters.
+			 * 
+			 * The first parameter should be an error incase there was an issue authenticating this user. If there was no issue, supply null.
+			 * 
+			 * The second parameter should be an object containing the user ID and the user object. The user ID will be used for Redis Pub/Sub and will be available in the client.id property. If there was an error, do not supply this value or simply supply null
+			 */
 			done(null, { id, user })
 		} catch(error) {
 			// Feel free to use a try/catch to resolve done with an error
