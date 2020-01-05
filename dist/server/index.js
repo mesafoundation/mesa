@@ -16,7 +16,9 @@ class Server extends events_1.EventEmitter {
         config = this.parseConfig(config);
         this.setup(config);
     }
-    send(message, _recipients) {
+    send(message, _recipients, excluding) {
+        if (_recipients && excluding)
+            _recipients = _recipients.filter(recipient => excluding.indexOf(recipient) === -1);
         if (!_recipients && !this.redis)
             return this.clients.forEach(client => client.send(message, false));
         if (this.redis)

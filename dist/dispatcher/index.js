@@ -8,7 +8,9 @@ const __1 = require("..");
 const helpers_util_1 = require("../utils/helpers.util");
 class Dispatcher {
     constructor(redis, config) {
-        this.dispatch = (event, recipients = []) => {
+        this.dispatch = (event, recipients = ['*'], excluding) => {
+            if (recipients && excluding)
+                recipients = recipients.filter(recipient => excluding.indexOf(recipient) === -1);
             switch (event.constructor.name) {
                 case __1.Message.name:
                     this.dispatchMessage(event, recipients);

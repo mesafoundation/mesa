@@ -9,7 +9,7 @@ declare class Dispatcher {
     private publisher;
     private config;
     constructor(redis: RedisConfig, config?: IDispatcherConfig);
-    dispatch: (event: Dispatchable, recipients?: string[]) => void;
+    dispatch: (event: Dispatchable, recipients?: string[], excluding?: string) => void;
     private fetchNamespace;
     private dispatchMessage;
     private dispatchEvent;

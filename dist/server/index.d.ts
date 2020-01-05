@@ -57,7 +57,7 @@ declare class Server extends EventEmitter {
     reconnectConfig: IReconnectConfig;
     authenticationConfig: IAuthenticationConfig;
     constructor(config?: IServerConfig);
-    send(message: Message, _recipients?: string[]): void | Promise<number>;
+    send(message: Message, _recipients?: string[], excluding?: string[]): void | Promise<number>;
     pubSubNamespace(): string;
     private setup;
     private parseConfig;
