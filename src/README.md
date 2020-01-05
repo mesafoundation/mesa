@@ -95,10 +95,12 @@ We provide expansive configuration support for customising Mesa to your needs. H
 	// Optional: support for pub/sub via Redis
 	redis: Redis.RedisOptions | string
 
+	// Optional
 	client?: {
 		// Optional: enforce the same Mesa version between server and client. Defaults to false
 		enforceEqualVersions?: boolean
 	}
+	// Optional
 	options?: {
 		// Optional: store messages on the client object. This setting applies to both server and client instances. Defaults to false
 		storeMessages?: boolean
@@ -138,10 +140,10 @@ We provide expansive configuration support for customising Mesa to your needs. H
 }
 ```
 
-Mesa uses EventEmitter in order to inform the application of events. Here's an example of a simple Mesa application:
+Mesa uses `EventEmitter` in order to inform the application of events. Here's an example of a simple Mesa application:
 ```js
 mesa.on('connection', client => {
-		console.log('Client connected')
+	console.log('Client connected')
 
 	client.on('message', message => {
 		const { data, type } = message
@@ -270,7 +272,7 @@ const client = new Client('ws://localhost:4000')
 ```
 *Note: the URL provided needs to be the standard WebSocket connection URI for your Mesa server*
 
-We provide expansive configuration support for customising Mesa to your needs. Here's a rundown of options we provide:
+We provide expansive configuration support for customising the Mesa client to your needs. Here's a rundown of options we provide:
 ```ts
 {
 	// Optional: enable/disable auto connection to the Mesa server once the client object has been instantiated. Enabled by default. Once disabled, use the 'connect()' method in order to connect the client to the Mesa server
