@@ -23,7 +23,7 @@ class Dispatcher {
 		this.config = this.parseConfig(config)
 	}
 
-	public dispatch = (event: Dispatchable, recipients: string[] = ['*'], excluding?: string) => {
+	public dispatch = (event: Dispatchable, recipients: string[] = ['*'], excluding?: string[]) => {
 		if (recipients && excluding)
 			recipients = recipients.filter(recipient => excluding.indexOf(recipient) === -1)
 
