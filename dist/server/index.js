@@ -16,8 +16,16 @@ class Server extends events_1.EventEmitter {
         config = this.parseConfig(config);
         this.setup(config);
     }
-    send(message) {
-        this.clients.forEach(client => client.send(message));
+    send(message, _recipients) {
+        if (!_recipients && !this.redis)
+            return this.clients.forEach(client => client.send(message, false));
+        if (this.redis)
+            return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
+                message: message.serialize(true),
+                recipients: _recipients || ['*']
+            }));
+        const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
+        recipients.forEach(recipient => recipient.send(message));
     }
     pubSubNamespace() {
         return this.namespace ? `ws-${this.namespace}` : 'ws';

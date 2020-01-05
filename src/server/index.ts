@@ -89,8 +89,18 @@ class Server extends EventEmitter {
 		this.setup(config)
 	}
 
-	public send(message: Message) {
-		this.clients.forEach(client => client.send(message))
+	public send(message: Message, _recipients?: string[]) {
+		if (!_recipients && !this.redis)
+			return this.clients.forEach(client => client.send(message, false))
+
+		if (this.redis)
+			return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
+				message: message.serialize(true),
+				recipients: _recipients || ['*']
+			} as IInternalMessage))
+
+		const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1)
+		recipients.forEach(recipient => recipient.send(message))
 	}
 
 	public pubSubNamespace() {
