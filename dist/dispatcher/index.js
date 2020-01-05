@@ -30,20 +30,20 @@ class Dispatcher {
         this.publisher = helpers_util_1.createRedisClient(redis);
         this.config = this.parseConfig(config);
     }
-    fetchNamespace() {
-        return this.config.namespace ? `ws-${this.config.namespace}` : 'ws';
-    }
     dispatchMessage(message, recipients) {
-        this.publisher.publish(this.fetchNamespace(), JSON.stringify({
+        this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
             message: message.serialize(true),
             recipients
         }));
     }
     dispatchEvent(event, recipients) {
-        this.publisher.publish(this.fetchNamespace(), JSON.stringify({
+        this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
             message: event.serialize(true),
             recipients
         }));
+    }
+    pubSubNamespace() {
+        return this.config.namespace ? `ws_${this.config.namespace}` : 'ws';
     }
 }
 exports.default = Dispatcher;

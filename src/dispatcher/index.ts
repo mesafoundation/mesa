@@ -39,13 +39,9 @@ class Dispatcher {
 		}
 	}
 
-	private fetchNamespace() {
-		return this.config.namespace ? `ws-${this.config.namespace}` : 'ws'
-	}
-
 	private dispatchMessage(message: Message, recipients: string[]) {
 		this.publisher.publish(
-			this.fetchNamespace(),
+			this.pubSubNamespace(),
 			JSON.stringify({
 				message: message.serialize(true),
 				recipients
@@ -55,12 +51,16 @@ class Dispatcher {
 
 	private dispatchEvent(event: Dispatchable, recipients: string[]) {
 		this.publisher.publish(
-			this.fetchNamespace(),
+			this.pubSubNamespace(),
 			JSON.stringify({
 				message: event.serialize(true),
 				recipients
 			} as IInternalMessage)
 		)
+	}
+
+	private pubSubNamespace() {
+		return this.config.namespace ? `ws_${this.config.namespace}` : 'ws'
 	}
 
 	private parseConfig = (config?: IDispatcherConfig) => {

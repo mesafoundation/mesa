@@ -169,7 +169,7 @@ class Client extends EventEmitter {
 		this.user = user
 
 		if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
-			this.server.redis.sadd(this.clientNamespace(), id)
+			this.server.redis.sadd(this.clientNamespace('connected_clients'), id)
 
 		if (!this.authenticated)
 			this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}))
@@ -182,14 +182,14 @@ class Client extends EventEmitter {
 			clearInterval(this.heartbeatInterval)
 
 		if (this.id && this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
-			this.server.redis.srem(this.clientNamespace(), this.id)
+			this.server.redis.srem(this.clientNamespace('connected_clients'), this.id)
 
 		this.emit('disconnect', code, reason)
 		this.server.emit('disconnection', code, reason)
 	}
 
-	private clientNamespace() {
-		return this.server.namespace ? `undelivered_events-${this.server.namespace}` : 'undelivered_events'
+	private clientNamespace(prefix: string) {
+		return this.server.namespace ? `${prefix}_${this.server.namespace}` : prefix
 	}
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@cryb/mesa",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "description": "A scalable, modern & robust WebSocket wrapper",
   "main": "index.js",
   "repository": "https://github.com/crybapp/mesa",

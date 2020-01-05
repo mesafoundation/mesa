@@ -30,7 +30,7 @@ class Server extends events_1.EventEmitter {
         recipients.forEach(recipient => recipient.send(message));
     }
     pubSubNamespace() {
-        return this.namespace ? `ws-${this.namespace}` : 'ws';
+        return this.namespace ? `ws_${this.namespace}` : 'ws';
     }
     setup(config) {
         if (this.wss)

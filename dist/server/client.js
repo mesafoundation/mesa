@@ -104,7 +104,7 @@ class Client extends events_1.EventEmitter {
         this.id = id;
         this.user = user;
         if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
-            this.server.redis.sadd(this.clientNamespace(), id);
+            this.server.redis.sadd(this.clientNamespace('connected_clients'), id);
         if (!this.authenticated)
             this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}));
         this.authenticated = true;
@@ -113,12 +113,12 @@ class Client extends events_1.EventEmitter {
         if (this.heartbeatInterval)
             clearInterval(this.heartbeatInterval);
         if (this.id && this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
-            this.server.redis.srem(this.clientNamespace(), this.id);
+            this.server.redis.srem(this.clientNamespace('connected_clients'), this.id);
         this.emit('disconnect', code, reason);
         this.server.emit('disconnection', code, reason);
     }
-    clientNamespace() {
-        return this.server.namespace ? `undelivered_events-${this.server.namespace}` : 'undelivered_events';
+    clientNamespace(prefix) {
+        return this.server.namespace ? `${prefix}_${this.server.namespace}` : prefix;
     }
 }
 exports.default = Client;

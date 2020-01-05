@@ -107,7 +107,7 @@ class Server extends EventEmitter {
 	}
 
 	public pubSubNamespace() {
-		return this.namespace ? `ws-${this.namespace}` : 'ws'
+		return this.namespace ? `ws_${this.namespace}` : 'ws'
 	}
 
 	private setup(config: IServerConfig) {
