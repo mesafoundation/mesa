@@ -26,8 +26,9 @@ class Client extends events_1.EventEmitter {
             }
             return;
         }
-        if (this.server.redis && !this.id)
-            console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API. Please use this API in order to enable pub/sub');
+        if (this.server.redis && !this.id && message.opcode === 0)
+            console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API.\
+				Please use this API in order to enable pub/sub');
         if (this.server.serverOptions.storeMessages)
             this.messages.sent.push(message);
         if (!this.server.redis || !this.id || pubSub)
@@ -97,9 +98,9 @@ class Client extends events_1.EventEmitter {
         if (error && this.server.authenticationConfig.disconnectOnFail)
             return this.disconnect(1008);
         const { id, user } = result;
-        if (!id)
+        if (typeof id !== 'undefined')
             throw new Error('No user id supplied in result callback');
-        if (!user)
+        else if (typeof user !== 'undefined')
             throw new Error('No user object supplied in result callback');
         this.id = id;
         this.user = user;
