@@ -20,6 +20,9 @@ _**Mesa** — Robust, reliable WebSockets_
         * [JavaScript](#javascript)
             * [Authentication](#authentication)
     * [Opcodes](#opcodes)
+* [Client Libraries](#client-libraries)
+	* [Creating a client library](#creating-a-client-library)
+	* [Future Libraries](#future-libraries)
 * [Questions / Issues](#questions--issues)
 
 ## Info
@@ -29,7 +32,7 @@ _**Mesa** — Robust, reliable WebSockets_
 
 Mesa was written to provide a robust solution to this. Modeled after Discord's WebSockets, Mesa was first utilised in `@cryb/api`. After a while we wanted to expand our microservices utilising the robust WebSocket solution we had instilled in `@cryb/api`. Thus, Mesa was born.
 
-In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub, authentication, heartbeats and more.
+In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub, authentication, heartbeats and more
 
 ### Features
 * Heartbeat support
@@ -43,12 +46,13 @@ In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub,
 * Better error reporting
 * Plugin / middleware support
 * Better disconnection handling
+* Potential rewrite in compiled language such as Go
 
 ### Status
-`@cryb/mesa` has been actively developed since December 2019.
+`@cryb/mesa` has been actively developed since December 2019
 
 ## Codebase
-The codebase for `@cryb/mesa` is written in JavaScript, utilising TypeScript and Node.js.
+The codebase for `@cryb/mesa` is written in JavaScript, utilising TypeScript and Node.js
 
 ### Code Style
 We ask that you follow our [code style guidelines](https://github.com/crybapp/library/blob/master/code-style/STYLE.md) when contributing to this repository.
@@ -157,7 +161,7 @@ mesa.on('connection', client => {
 })
 ```
 
-From here, everything should be fairly self explanatory. We'll share more guides once we implement more features for Mesa.
+From here, everything should be fairly self explanatory. We'll share more guides once we implement more features for Mesa
 
 #### Authenticating Clients
 Mesa supports client authentication through a simple API that can adapt to support your authentication infrastructure. To authenticate a user from Mesa, use the following API:
@@ -256,7 +260,7 @@ In the future we'll create an API for creating and handling custom dispatch even
 *Note: in the future we plan to migrate from Dispatcher connecting via Redis Pub/Sub to directly connecting to Mesa. The Dispatcher API is early, so please keep this in mind while writing implementations*
 
 ### Client Side
-We currently provide a client interface for JavaScript. We're working on client implementations for Swift, Go and other languages.
+We currently provide client libraries for both browser and server-based JavaScript
 
 #### <a name="client-authentication"></a> JavaScript
 Import the Client export from the library as you would with any other Node package:
@@ -322,7 +326,7 @@ client.on('connection', async () => {
 ### Opcodes
 Mesa relies on opcodes to identify different event types. While internal Mesa events uses opcodes 1 to 22, these may be useful to know for building a custom client for example.
 
-We recommend that you keep to opcode 0 for sending / recieving events via Mesa to minimalise errors and interference with internal Mesa events.
+We recommend that you keep to opcode 0 for sending / recieving events via Mesa to minimalise errors and interference with internal Mesa events
 
 | **Code** | **Name**           | **Client Action** | **Description**                                                                          |
 |----------|--------------------|-------------------|------------------------------------------------------------------------------------------|
@@ -333,6 +337,22 @@ We recommend that you keep to opcode 0 for sending / recieving events via Mesa t
 | 10       | Hello              | Recieve           | Sent by Mesa alongside server information for client setup                               |
 | 11       | Heartbeat ACK      | Receive           | Sent by Mesa to acknowledge a heartbeat has been received                                |
 | 22       | Authentication ACK | Receive           | Sent by Mesa alongside user information to acknowledge the client has been authenticated |
+
+## Client Libraries
+While we have an official Client implementation for Node.js in this library, we do offer client libraries for other languages. Here's a list of official or community maintained client libraries:
+
+* [mesa-js-client](https://github.com/neoncloth/mesa-js-client) for browser-based JavaScript. Maintained by Cryb
+
+### Creating a client library
+We'd love for the community to create implementations of the Mesa client. Make sure to title the library in the style of `mesa-lang-client`. For example, a Go library would take the name of `mesa-go-client`.
+
+In the future we'll publish a specification so it's easier to understand how the client interacts with a Mesa server, but for now please look over [`client.ts`](https://github.com/crybapp/mesa/blob/master/src/client/index.ts). If you do create a client library, please let us know [on our Discord](https://discord.gg/ShTATH4)
+
+### Future Libraries
+We'd love to see client implementations of Mesa in the all languages, but these are the languages we have our eye on—ordered by priority:
+
+* [Swift](https://swift.org)
+* [Go](https://golang.org)
 
 ## Questions / Issues
 If you have an issues with `@cryb/mesa`, please either open a GitHub issue, contact a maintainer or join the [Cryb Discord Server](https://discord.gg/ShTATH4) and ask in #tech-support
