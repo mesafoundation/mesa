@@ -23,7 +23,7 @@ export interface IServerOptions {
 
 export interface ISyncConfig {
 	enabled: boolean
-	messageRedeliveryInterval?: 0 | number
+	redeliveryInterval?: 0 | number
 }
 
 export interface IHeartbeatConfig {

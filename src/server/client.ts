@@ -197,7 +197,7 @@ class Client extends EventEmitter {
 	private async redeliverUndeliverableMessages() {
 		const namespace = this.clientNamespace('undelivered_messages'),
 				_undeliveredMessages = await this.server.redis.hget(namespace, this.id),
-				messageRedeliveryInterval = this.server.syncConfig.messageRedeliveryInterval
+				messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval
 
 		let undeliveredMessages: IMessage[] = []
 

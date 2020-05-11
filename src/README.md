@@ -15,11 +15,13 @@ _**Mesa** — Robust, reliable WebSockets_
 * [Usage](#usage)
     * [Server Side](#server-side)
         * [Authenticating Clients](#authenticating-clients)
+        * [Message Sync](#message-sync)
         * [Dispatch Events](#dispatch-events)
     * [Client Side](#client-side)
         * [JavaScript](#javascript)
             * [Authentication](#authentication)
     * [Opcodes](#opcodes)
+	* [Configuration](#configuration)
 * [Client Libraries](#client-libraries)
 	* [Creating a client library](#creating-a-client-library)
 	* [Future Libraries](#future-libraries)
@@ -85,63 +87,7 @@ To create a Mesa server, simply write:
 const server = new Mesa({ port: 4000 })
 ```
 
-We provide expansive configuration support for customising Mesa to your needs. Here's a rundown of options we provide:
-```ts
-{
-	// Optional: port that Mesa should listen on. Defaults to 4000
-	port: number
-	// Optional: namespace for Redis events. If you have multiple Mesa instances running on a cluster, you should use this
-	namespace: string
-
-	// Optional: allow Mesa to use an already established HTTP server for listening
-	server: http.Server | https.Server
-	// Optional: support for pub/sub via Redis
-	redis: Redis.RedisOptions | string
-
-	// Optional
-	client?: {
-		// Optional: enforce the same Mesa version between server and client. Defaults to false
-		enforceEqualVersions?: boolean
-	}
-	// Optional
-	options?: {
-		// Optional: store messages on the client object. This setting applies to both server and client instances. Defaults to false
-		storeMessages?: boolean
-	}
-
-	// Optional
-	heartbeat?: {
-		// Enable / disable heartbeats. Defaults to false
-		enabled: boolean
-
-		// Optional: interval in ms for how often heartbeats should be sent to clients. Defaults to 10000ms
-		interval?: number
-		// Optional: how many heartbeats Mesa should send before closing the connection. Defaults to 3
-		maxAttempts?: number
-	}
-	// Optional
-	reconnect?: {
-		// Enable / disconnect reconnects. Defaults to false
-		enabled: boolean
-
-		// Optional: interval in ms for how often a client should try to reconnect once disconnected from a Mesa server. Defaults to 5000ms
-		interval?: number
-	}
-
-	// Optional
-	authentication?: {
-		// Optional: interval in ms for how long a client has to send authentication data before being disconnected from a Mesa server. Defaults to 10000ms
-		timeout?: number
-
-		// Optional: send the user object to the client once authentication is complete. Defaults to true
-		sendUserObject?: boolean
-		// Optional: disconnect the user if authentication failed. Defaults to true
-		disconnectOnFail?: boolean
-		// Optional: store the IDs of connected users in a Redis set called connected_clients. Defaults to true
-		storeConnectedUsers?: boolean
-	}
-}
-```
+We provide expansive configuration support for customising Mesa to your needs. See [Configuration](#configuration) for options.
 
 Mesa uses `EventEmitter` in order to inform the application of events. Here's an example of a simple Mesa application:
 ```js
@@ -211,6 +157,46 @@ mesa.on('connection', client => {
 ```
 
 Our use of Redis Pub/Sub relies on a client being authenticated. If you haven't authenticated your client Mesa will not make use of Pub/Sub with this client. Other authenticated clients will have their messages proxied by Pub/Sub
+
+#### Message Sync
+Mesa suports message sync, allowing clients that have been disconnected either purposefully or unpurposefully to recieve any messages that couldn't be delivered.
+
+To enable message sync, add the following to your config:
+```js
+const server = new Mesa({
+	port: 4000,
+	// Redis is required for message sync
+	redis: 'redis://localhost:6379',
+
+	sync: {
+		enabled: true
+	},
+	authentication: {
+		// storeConnectedUsers is also required for message sync
+		storeConnectedUsers: true
+	}
+})
+```
+
+Now any time a message is sent to an offline client, either using `Mesa.send` or `Dispatcher.dispatch`, it'll automatically be sent as soon as they connect.
+
+Clients will recieve undelivered messages in this format:
+```json
+{ "op": 0, "d": {}, "t": "EXAMPLE_MESSAGE", "s": 3 }
+```
+
+The `s` property notates the sequence position of the message. This is used to help clients reconstruct the order undelivered messages were supposed to be recieved in.
+
+If you want to implement a custom interval between message redeliveries, use the following configuration on the Mesa server:
+```js
+sync: {
+	enabled: true,
+
+	redeliveryInterval: 1000 // 1 second
+}
+```
+
+Authentication via the `client.authenticate` API is required for message sync to work
 
 #### Dispatch Events
 Dispatch events are server-side events that are used to send messages to Mesa clients throughout a large codebase. Codebases that split their code up between multiple files will find dispatch events particularly useful.
@@ -336,6 +322,73 @@ We recommend that you keep to opcode 0 for sending / recieving events via Mesa t
 | 10       | Hello              | Recieve           | Sent by Mesa alongside server information for client setup                               |
 | 11       | Heartbeat ACK      | Receive           | Sent by Mesa to acknowledge a heartbeat has been received                                |
 | 22       | Authentication ACK | Receive           | Sent by Mesa alongside user information to acknowledge the client has been authenticated |
+
+### Configuration
+Mesa's Server component allows for the following configuration to be passed in during initialization:
+```ts
+{
+	// Optional: port that Mesa should listen on. Defaults to 4000
+	port: number
+	// Optional: namespace for Redis events. If you have multiple Mesa instances running on a cluster, you should use this
+	namespace: string
+
+	// Optional: allow Mesa to use an already established HTTP server for listening
+	server: http.Server | https.Server
+	// Optional: support for pub/sub via Redis
+	redis: Redis.RedisOptions | string
+
+	// Optional
+	client?: {
+		// Optional: enforce the same Mesa version between server and client. Defaults to false
+		enforceEqualVersions?: boolean
+	}
+	// Optional
+	options?: {
+		// Optional: store messages on the client object. This setting applies to both server and client instances. Defaults to false
+		storeMessages?: boolean
+	}
+
+	// Optional
+	sync?: {
+		// Enable / disable message sync. Defaults to false
+		enabled: boolean
+
+		// Optional: the interval in ms of message redeliveries. Defaults to 0ms
+		redeliveryInterval?: number
+	}
+	// Optional
+	heartbeat?: {
+		// Enable / disable heartbeats. Defaults to false
+		enabled: boolean
+
+		// Optional: interval in ms for how often heartbeats should be sent to clients. Defaults to 10000ms
+		interval?: number
+		// Optional: how many heartbeats Mesa should send before closing the connection. Defaults to 3
+		maxAttempts?: number
+	}
+	// Optional
+	reconnect?: {
+		// Enable / disconnect reconnects. Defaults to false
+		enabled: boolean
+
+		// Optional: interval in ms for how often a client should try to reconnect once disconnected from a Mesa server. Defaults to 5000ms
+		interval?: number
+	}
+
+	// Optional
+	authentication?: {
+		// Optional: interval in ms for how long a client has to send authentication data before being disconnected from a Mesa server. Defaults to 10000ms
+		timeout?: number
+
+		// Optional: send the user object to the client once authentication is complete. Defaults to true
+		sendUserObject?: boolean
+		// Optional: disconnect the user if authentication failed. Defaults to true
+		disconnectOnFail?: boolean
+		// Optional: store the IDs of connected users in a Redis set called connected_clients. Defaults to true
+		storeConnectedUsers?: boolean
+	}
+}
+```
 
 ## Client Libraries
 While we have an official Client implementation for Node.js in this library, we do offer client libraries for other languages. Here's a list of official or community maintained client libraries:

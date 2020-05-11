@@ -123,7 +123,7 @@ class Client extends events_1.EventEmitter {
         this.server.emit('disconnection', code, reason);
     }
     async redeliverUndeliverableMessages() {
-        const namespace = this.clientNamespace('undelivered_messages'), _undeliveredMessages = await this.server.redis.hget(namespace, this.id), messageRedeliveryInterval = this.server.syncConfig.messageRedeliveryInterval;
+        const namespace = this.clientNamespace('undelivered_messages'), _undeliveredMessages = await this.server.redis.hget(namespace, this.id), messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval;
         let undeliveredMessages = [];
         if (_undeliveredMessages)
             try {
