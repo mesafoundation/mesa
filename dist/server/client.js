@@ -18,7 +18,7 @@ class Client extends events_1.EventEmitter {
         this.server = server;
         this.setup();
     }
-    send(message, pubSub = false) {
+    send(message, sendDirectly = false) {
         if (message.opcode === 5) {
             switch (message.type) {
                 case 'DISCONNECT_CLIENT':
@@ -26,14 +26,16 @@ class Client extends events_1.EventEmitter {
             }
             return;
         }
-        if (this.server.redis && !this.id && message.opcode === 0)
-            console.warn('Mesa pub/sub only works when users are identified using the client.authenticate API.\
-				Please use this API in order to enable pub/sub');
+        // if (!this.server.redis && !this.id && message.opcode === 0)
+        // 	console.warn(
+        // 		'Mesa pub/sub only works when users are identified using the client.authenticate API.\
+        // 		Please use this API in order to enable pub/sub'
+        // 	)
         if (this.server.serverOptions.storeMessages)
             this.messages.sent.push(message);
-        if (!this.server.redis || !this.id || pubSub)
+        if (sendDirectly)
             return this.socket.send(message.serialize());
-        this.server.publisher.publish(this.server.pubSubNamespace(), JSON.stringify({ message: message.serialize(true), recipients: [this.id] }));
+        this.server.send(message, [this.id]);
     }
     authenticate(callback) {
         this.authenticationCheck = callback;
@@ -98,12 +100,14 @@ class Client extends events_1.EventEmitter {
         if (error && this.server.authenticationConfig.disconnectOnFail)
             return this.disconnect(1008);
         const { id, user } = result;
-        if (typeof id !== 'undefined')
+        if (typeof id === 'undefined')
             throw new Error('No user id supplied in result callback');
-        else if (typeof user !== 'undefined')
+        else if (typeof user === 'undefined')
             throw new Error('No user object supplied in result callback');
         this.id = id;
         this.user = user;
+        if (this.server.syncConfig.enabled && this.server.redis)
+            this.redeliverUndeliverableMessages();
         if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
             this.server.redis.sadd(this.clientNamespace('connected_clients'), id);
         if (!this.authenticated)
@@ -117,6 +121,31 @@ class Client extends events_1.EventEmitter {
             this.server.redis.srem(this.clientNamespace('connected_clients'), this.id);
         this.emit('disconnect', code, reason);
         this.server.emit('disconnection', code, reason);
+    }
+    async redeliverUndeliverableMessages() {
+        const namespace = this.clientNamespace('undelivered_messages'), _undeliveredMessages = await this.server.redis.hget(namespace, this.id), messageRedeliveryInterval = this.server.syncConfig.messageRedeliveryInterval;
+        let undeliveredMessages = [];
+        if (_undeliveredMessages)
+            try {
+                undeliveredMessages = JSON.parse(_undeliveredMessages);
+            }
+            catch (error) {
+                console.error(error);
+            }
+        const messages = undeliveredMessages.map((message, sequence) => new message_1.default(message.op, message.d, message.t, { sequence }));
+        if (messageRedeliveryInterval) {
+            let interval, messageIndex = 0;
+            interval = setInterval(() => {
+                const message = messages[messageIndex];
+                if (!message)
+                    return clearInterval(interval);
+                this.send(message, true);
+                messageIndex += 1;
+            }, messageRedeliveryInterval);
+        }
+        else
+            messages.forEach(message => this.send(message, true));
+        this.server.redis.hdel(namespace, this.id);
     }
     clientNamespace(prefix) {
         return this.server.namespace ? `${prefix}_${this.server.namespace}` : prefix;

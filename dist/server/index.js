@@ -16,11 +16,27 @@ class Server extends events_1.EventEmitter {
         config = this.parseConfig(config);
         this.setup(config);
     }
-    send(message, _recipients, excluding) {
+    async send(message, _recipients, excluding) {
         if (_recipients && excluding)
             _recipients = _recipients.filter(recipient => excluding.indexOf(recipient) === -1);
-        if (!_recipients && !this.redis)
-            return this.clients.forEach(client => client.send(message, false));
+        if (!this.redis && !_recipients)
+            return this.clients.forEach(client => client.send(message, true));
+        if (this.redis && _recipients && this.syncConfig.enabled) {
+            const namespace = this.clientNamespace('connected_clients'), onlineRecipients = [], offlineRecipients = [];
+            if (_recipients && this.syncConfig.enabled)
+                for (let i = 0; i < _recipients.length; i++) {
+                    const recipient = _recipients[i], isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
+                    (isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient);
+                }
+            if (onlineRecipients.length > 0)
+                this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
+                    message: message.serialize(true),
+                    recipients: onlineRecipients
+                }));
+            if (offlineRecipients.length > 0)
+                offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient));
+            return;
+        }
         if (this.redis)
             return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
                 message: message.serialize(true),
@@ -52,9 +68,12 @@ class Server extends events_1.EventEmitter {
             this.setupRedis(config.redis);
         this.clientConfig = utils_1.parseConfig(config.client, ['enforceEqualVersions'], [false]);
         this.serverOptions = utils_1.parseConfig(config.options, ['storeMessages'], [false]);
+        this.syncConfig = config.sync || { enabled: false };
         this.heartbeatConfig = config.heartbeat || { enabled: false };
         this.reconnectConfig = config.reconnect || { enabled: false };
         this.authenticationConfig = utils_1.parseConfig(config.authentication, ['timeout', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, true, true, true]);
+        if (this.syncConfig && this.syncConfig.enabled && !this.authenticationConfig.storeConnectedUsers)
+            console.warn('Mesa requires config.authentication.storeConnectedUsers to be true for message sync to be enabled');
         return config;
     }
     setupRedis(redisConfig) {
@@ -86,6 +105,19 @@ class Server extends events_1.EventEmitter {
             recipients = this.clients.filter(client => _recipients.indexOf(client.id) > -1);
         recipients.forEach(client => client.send(message, true));
     }
+    async handleUndeliverableMessage(message, recipient) {
+        const namespace = this.clientNamespace('undelivered_messages'), _undeliveredMessages = await this.redis.hget(namespace, recipient);
+        let undeliveredMessages = [];
+        if (_undeliveredMessages)
+            try {
+                undeliveredMessages = JSON.parse(_undeliveredMessages);
+            }
+            catch (error) {
+                console.error(error);
+            }
+        undeliveredMessages.push(message.serialize(true));
+        this.redis.hset(namespace, recipient, JSON.stringify(undeliveredMessages));
+    }
     fetchClientConfig() {
         const config = {}, { serverOptions, clientConfig, authenticationConfig } = this, rules = utils_1.parseRules({ serverOptions, clientConfig, authenticationConfig });
         if (this.heartbeatConfig.enabled)
@@ -97,6 +129,9 @@ class Server extends events_1.EventEmitter {
         if (rules.length > 0)
             config.rules = rules;
         return config;
+    }
+    clientNamespace(prefix) {
+        return this.namespace ? `${prefix}_${this.namespace}` : prefix;
     }
 }
 exports.default = Server;

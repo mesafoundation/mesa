@@ -36,17 +36,16 @@ In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub,
 
 ### Features
 * Heartbeat support
+* Message sync support
 * Reconnection support
 * Authentication support
 * Global dispatch events
 * Pub/sub support via Redis
 
 #### Planned Features
-* Message sync support
 * Better error reporting
 * Plugin / middleware support
 * Better disconnection handling
-* Potential rewrite in compiled language such as Go
 
 ### Status
 `@cryb/mesa` has been actively developed since December 2019

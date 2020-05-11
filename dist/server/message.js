@@ -5,11 +5,17 @@ class Message {
         this.opcode = opcode;
         this.data = data;
         this.type = type;
-        this.raw = { op: opcode, d: data, t: type };
         this.options = options || {};
+        if (this.options.sequence)
+            this.sequence = this.options.sequence;
     }
     serialize(toJson = false) {
-        const json = { op: this.opcode, d: this.data, t: this.type };
+        const json = {
+            op: this.opcode,
+            d: this.data,
+            t: this.type,
+            s: this.sequence
+        };
         if (toJson)
             return json;
         return JSON.stringify(json);

@@ -13,6 +13,10 @@ export interface IClientConfig {
 export interface IServerOptions {
     storeMessages?: boolean;
 }
+export interface ISyncConfig {
+    enabled: boolean;
+    messageRedeliveryInterval?: 0 | number;
+}
 export interface IHeartbeatConfig {
     enabled: boolean;
     interval?: 10000 | number;
@@ -35,6 +39,7 @@ interface IServerConfig {
     server?: http.Server | https.Server;
     client?: IClientConfig;
     options?: IServerOptions;
+    sync?: ISyncConfig;
     heartbeat?: IHeartbeatConfig;
     reconnect?: IReconnectConfig;
     authentication?: IAuthenticationConfig;
@@ -53,17 +58,20 @@ declare class Server extends EventEmitter {
     subscriber: Redis.Redis;
     clientConfig: IClientConfig;
     serverOptions: IServerOptions;
+    syncConfig: ISyncConfig;
     heartbeatConfig: IHeartbeatConfig;
     reconnectConfig: IReconnectConfig;
     authenticationConfig: IAuthenticationConfig;
     constructor(config?: IServerConfig);
-    send(message: Message, _recipients?: string[], excluding?: string[]): void | Promise<number>;
+    send(message: Message, _recipients?: string[], excluding?: string[]): Promise<number | void>;
     pubSubNamespace(): string;
     private setup;
     private parseConfig;
     private setupRedis;
     private registerClient;
     private handleInternalMessage;
+    private handleUndeliverableMessage;
     private fetchClientConfig;
+    private clientNamespace;
 }
 export default Server;

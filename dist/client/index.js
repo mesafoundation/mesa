@@ -83,7 +83,7 @@ class Client extends events_1.EventEmitter {
         catch (error) {
             return console.error(error);
         }
-        const { op, d, t } = json, message = new message_1.default(op, d, t);
+        const { op, d, t, s } = json, message = new message_1.default(op, d, t, s ? { sequence: s } : null);
         switch (message.opcode) {
             case 1:
                 return this.send(new message_1.default(11, {}));

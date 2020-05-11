@@ -34,7 +34,7 @@ declare class Client extends EventEmitter {
     private heartbeatAttempts;
     private heartbeatBuffer;
     constructor(socket: WebSocket, server: Server);
-    send(message: Message, pubSub?: boolean): void;
+    send(message: Message, sendDirectly?: boolean): void;
     authenticate(callback: AuthenticationCallback): void;
     updateUser(update: IAuthenticationResult): void;
     disconnect(code?: number): void;
@@ -43,6 +43,7 @@ declare class Client extends EventEmitter {
     private registerMessage;
     private registerAuthentication;
     private registerDisconnection;
+    private redeliverUndeliverableMessages;
     private clientNamespace;
 }
 export default Client;

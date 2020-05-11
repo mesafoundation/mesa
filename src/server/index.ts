@@ -6,7 +6,7 @@ import Redis from 'ioredis'
 import WebSocket, { ServerOptions as WSOptions } from 'ws'
 
 import Client, { IClientConnectionConfig, Rule } from './client'
-import Message, { IInternalMessage } from './message'
+import Message, { IInternalMessage, IMessage } from './message'
 
 import { parseConfig, parseRules } from '../utils'
 import { createRedisClient } from '../utils/helpers.util'
@@ -19,6 +19,11 @@ export interface IClientConfig {
 
 export interface IServerOptions {
 	storeMessages?: boolean
+}
+
+export interface ISyncConfig {
+	enabled: boolean
+	messageRedeliveryInterval?: 0 | number
 }
 
 export interface IHeartbeatConfig {
@@ -52,6 +57,7 @@ interface IServerConfig {
 	client?: IClientConfig
 	options?: IServerOptions
 
+	sync?: ISyncConfig
 	heartbeat?: IHeartbeatConfig
 	reconnect?: IReconnectConfig
 	authentication?: IAuthenticationConfig
@@ -77,6 +83,7 @@ class Server extends EventEmitter {
 	public clientConfig: IClientConfig
 	public serverOptions: IServerOptions
 
+	public syncConfig: ISyncConfig
 	public heartbeatConfig: IHeartbeatConfig
 	public reconnectConfig: IReconnectConfig
 	public authenticationConfig: IAuthenticationConfig
@@ -89,12 +96,37 @@ class Server extends EventEmitter {
 		this.setup(config)
 	}
 
-	public send(message: Message, _recipients?: string[], excluding?: string[]) {
+	public async send(message: Message, _recipients?: string[], excluding?: string[]) {
 		if (_recipients && excluding)
 			_recipients = _recipients.filter(recipient => excluding.indexOf(recipient) === -1)
 
-		if (!_recipients && !this.redis)
-			return this.clients.forEach(client => client.send(message, false))
+		if (!this.redis && !_recipients)
+			return this.clients.forEach(client => client.send(message, true))
+
+		if (this.redis && _recipients && this.syncConfig.enabled) {
+			const namespace = this.clientNamespace('connected_clients'),
+					onlineRecipients = [],
+					offlineRecipients = []
+
+			if (_recipients && this.syncConfig.enabled)
+				for (let i = 0; i < _recipients.length; i++) {
+					const recipient = _recipients[i],
+							isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
+
+					(isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient)
+				}
+
+			if (onlineRecipients.length > 0)
+				this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
+					message: message.serialize(true),
+					recipients: onlineRecipients
+				} as IInternalMessage))
+
+			if (offlineRecipients.length > 0)
+				offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient))
+
+			return
+		}
 
 		if (this.redis)
 			return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
@@ -138,9 +170,13 @@ class Server extends EventEmitter {
 		this.clientConfig = parseConfig(config.client, ['enforceEqualVersions'], [false])
 		this.serverOptions = parseConfig(config.options, ['storeMessages'], [false])
 
+		this.syncConfig = config.sync || { enabled: false }
 		this.heartbeatConfig = config.heartbeat || { enabled: false }
 		this.reconnectConfig = config.reconnect || { enabled: false }
 		this.authenticationConfig = parseConfig(config.authentication, ['timeout', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, true, true, true])
+
+		if (this.syncConfig && this.syncConfig.enabled && !this.authenticationConfig.storeConnectedUsers)
+			console.warn('Mesa requires config.authentication.storeConnectedUsers to be true for message sync to be enabled')
 
 		return config
 	}
@@ -186,6 +222,24 @@ class Server extends EventEmitter {
 		recipients.forEach(client => client.send(message, true))
 	}
 
+	private async handleUndeliverableMessage(message: Message, recipient: string) {
+		const namespace = this.clientNamespace('undelivered_messages'),
+				_undeliveredMessages = await this.redis.hget(namespace, recipient)
+
+		let undeliveredMessages: IMessage[] = []
+
+		if (_undeliveredMessages)
+			try {
+				undeliveredMessages = JSON.parse(_undeliveredMessages)
+			} catch (error) {
+				console.error(error)
+			}
+
+		undeliveredMessages.push(message.serialize(true) as IMessage)
+
+		this.redis.hset(namespace, recipient, JSON.stringify(undeliveredMessages))
+	}
+
 	private fetchClientConfig() {
 		const config: IClientConnectionConfig = {},
 			{ serverOptions, clientConfig, authenticationConfig } = this,
@@ -204,6 +258,10 @@ class Server extends EventEmitter {
 			config.rules = rules
 
 		return config
+	}
+
+	private clientNamespace(prefix: string) {
+		return this.namespace ? `${prefix}_${this.namespace}` : prefix
 	}
 }
 

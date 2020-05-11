@@ -135,7 +135,8 @@ class Client extends EventEmitter {
 			return console.error(error)
 		}
 
-		const { op, d, t } = json, message = new Message(op, d, t)
+		const { op, d, t, s } = json,
+				message = new Message(op, d, t, s ? { sequence: s } : null)
 
 		switch (message.opcode) {
 			case 1:

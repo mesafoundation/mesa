@@ -59,7 +59,7 @@ class Client extends EventEmitter {
 		this.setup()
 	}
 
-	public send(message: Message, pubSub: boolean = false) {
+	public send(message: Message, sendDirectly: boolean = false) {
 		if (message.opcode === 5) {
 			switch (message.type) {
 				case 'DISCONNECT_CLIENT':
@@ -69,22 +69,19 @@ class Client extends EventEmitter {
 			return
 		}
 
-		if (this.server.redis && !this.id && message.opcode === 0)
-			console.warn(
-				'Mesa pub/sub only works when users are identified using the client.authenticate API.\
-				Please use this API in order to enable pub/sub'
-			)
+		// if (!this.server.redis && !this.id && message.opcode === 0)
+		// 	console.warn(
+		// 		'Mesa pub/sub only works when users are identified using the client.authenticate API.\
+		// 		Please use this API in order to enable pub/sub'
+		// 	)
 
 		if (this.server.serverOptions.storeMessages)
 			this.messages.sent.push(message)
 
-		if (!this.server.redis || !this.id || pubSub)
+		if (sendDirectly)
 			return this.socket.send(message.serialize())
 
-		this.server.publisher.publish(
-			this.server.pubSubNamespace(),
-			JSON.stringify({ message: message.serialize(true), recipients: [this.id] })
-		)
+		this.server.send(message, [this.id])
 	}
 
 	public authenticate(callback: AuthenticationCallback) {
@@ -166,13 +163,16 @@ class Client extends EventEmitter {
 
 		const { id, user } = result
 
-		if (typeof id !== 'undefined')
+		if (typeof id === 'undefined')
 			throw new Error('No user id supplied in result callback')
-		else if (typeof user !== 'undefined')
+		else if (typeof user === 'undefined')
 			throw new Error('No user object supplied in result callback')
 
 		this.id = id
 		this.user = user
+
+		if (this.server.syncConfig.enabled && this.server.redis)
+			this.redeliverUndeliverableMessages()
 
 		if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
 			this.server.redis.sadd(this.clientNamespace('connected_clients'), id)
@@ -192,6 +192,43 @@ class Client extends EventEmitter {
 
 		this.emit('disconnect', code, reason)
 		this.server.emit('disconnection', code, reason)
+	}
+
+	private async redeliverUndeliverableMessages() {
+		const namespace = this.clientNamespace('undelivered_messages'),
+				_undeliveredMessages = await this.server.redis.hget(namespace, this.id),
+				messageRedeliveryInterval = this.server.syncConfig.messageRedeliveryInterval
+
+		let undeliveredMessages: IMessage[] = []
+
+		if (_undeliveredMessages)
+			try {
+				undeliveredMessages = JSON.parse(_undeliveredMessages)
+			} catch (error) {
+				console.error(error)
+			}
+
+		const messages = undeliveredMessages.map((message, sequence) =>
+			new Message(message.op, message.d, message.t, { sequence })
+		)
+
+		if (messageRedeliveryInterval) {
+			let interval: NodeJS.Timeout,
+				messageIndex = 0
+
+			interval = setInterval(() => {
+				const message = messages[messageIndex]
+				if (!message)
+					return clearInterval(interval)
+
+				this.send(message, true)
+
+				messageIndex += 1
+			}, messageRedeliveryInterval)
+		} else
+			messages.forEach(message => this.send(message, true))
+
+		this.server.redis.hdel(namespace, this.id)
 	}
 
 	private clientNamespace(prefix: string) {
