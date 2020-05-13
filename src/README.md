@@ -10,7 +10,7 @@ _**Mesa** — Robust, reliable WebSockets_
         * [Planned Features](#planned-features)
     * [Status](#status)
 * [Codebase](#codebase)
-	* [Code Style](#code-style)
+  * [Code Style](#code-style)
 * [Installation](#installation)
 * [Usage](#usage)
     * [Server Side](#server-side)
@@ -21,10 +21,10 @@ _**Mesa** — Robust, reliable WebSockets_
         * [JavaScript](#javascript)
             * [Authentication](#authentication)
     * [Opcodes](#opcodes)
-	* [Configuration](#configuration)
+  * [Configuration](#configuration)
 * [Client Libraries](#client-libraries)
-	* [Creating a client library](#creating-a-client-library)
-	* [Future Libraries](#future-libraries)
+  * [Creating a client library](#creating-a-client-library)
+  * [Future Libraries](#future-libraries)
 * [Questions / Issues](#questions--issues)
 
 ## Info
@@ -92,17 +92,17 @@ We provide expansive configuration support for customising Mesa to your needs. S
 Mesa uses `EventEmitter` in order to inform the application of events. Here's an example of a simple Mesa application:
 ```js
 mesa.on('connection', client => {
-	console.log('Client connected')
+  console.log('Client connected')
 
-	client.on('message', message => {
-		const { data, type } = message
+  client.on('message', message => {
+    const { data, type } = message
 
-		console.log('Recieved', data, type)
-	})
+    console.log('Recieved', data, type)
+  })
 
-	client.on('disconnect', (code, reason) => {
-		console.log('Client disconnected')
-	})
+  client.on('disconnect', (code, reason) => {
+    console.log('Client disconnected')
+  })
 })
 ```
 
@@ -113,46 +113,46 @@ Mesa supports client authentication through a simple API that can adapt to suppo
 
 ```js
 const server = new Mesa({
-	port: 4000,
-	/**
-	 * Optional: supply a namespace so different Mesa servers running on a cluster don't interfere with each other
-	 */
-	namespace: 'api',
-	/**
-	 * Optional: supply a Redis URI to make full use of Authentication via Pub/Sub
-	 */
-	redis: 'redis://localhost:6379'
+  port: 4000,
+  /**
+   * Optional: supply a namespace so different Mesa servers running on a cluster don't interfere with each other
+   */
+  namespace: 'api',
+  /**
+   * Optional: supply a Redis URI to make full use of Authentication via Pub/Sub
+   */
+  redis: 'redis://localhost:6379'
 })
 
 mesa.on('connection', client => {
-	/**
-	 * When a client connects and sends an authentication message, it can be handled here.
-	 * 
-	 * This authentication method takes in a callback that is called with two parameters: data (sent from the client) and done (supplied by Mesa).
-	 * 
-	 * This method is called when a client sends a opcode 2 message. For example, it would look like {"op": 2, d: { "token": ... }}
-	 */
-	client.authenticate(async ({ token }, done) => {
-		try {
-			/**
-			 * Once authentication data has been supplied from the client message, you can authenticate via a call to a microservice or database lookup
-			 */
-			const { data: user } = await axios.post('http://localhost:4500', { token }),
-				{ info: { id } } = user
+  /**
+   * When a client connects and sends an authentication message, it can be handled here.
+   * 
+   * This authentication method takes in a callback that is called with two parameters: data (sent from the client) and done (supplied by Mesa).
+   * 
+   * This method is called when a client sends a opcode 2 message. For example, it would look like {"op": 2, d: { "token": ... }}
+   */
+  client.authenticate(async ({ token }, done) => {
+    try {
+      /**
+       * Once authentication data has been supplied from the client message, you can authenticate via a call to a microservice or database lookup
+       */
+      const { data: user } = await axios.post('http://localhost:4500', { token }),
+        { info: { id } } = user
 
-			/**
-			 * Once you have authenticated the user, call the done method supplied in the callback with two parameters.
-			 * 
-			 * The first parameter should be an error incase there was an issue authenticating this user. If there was no issue, supply null.
-			 * 
-			 * The second parameter should be an object containing the user ID and the user object. The user ID will be used for Redis Pub/Sub and will be available in the client.id property. If there was an error, do not supply this value or simply supply null
-			 */
-			done(null, { id, user })
-		} catch(error) {
-			// Feel free to use a try/catch to resolve done with an error
-			done(error)
-		}
-	})
+      /**
+       * Once you have authenticated the user, call the done method supplied in the callback with two parameters.
+       * 
+       * The first parameter should be an error incase there was an issue authenticating this user. If there was no issue, supply null.
+       * 
+       * The second parameter should be an object containing the user ID and the user object. The user ID will be used for Redis Pub/Sub and will be available in the client.id property. If there was an error, do not supply this value or simply supply null
+       */
+      done(null, { id, user })
+    } catch(error) {
+      // Feel free to use a try/catch to resolve done with an error
+      done(error)
+    }
+  })
 })
 ```
 
@@ -164,17 +164,17 @@ Mesa suports message sync, allowing clients that have been disconnected either p
 To enable message sync, add the following to your config:
 ```js
 const server = new Mesa({
-	port: 4000,
-	// Redis is required for message sync
-	redis: 'redis://localhost:6379',
+  port: 4000,
+  // Redis is required for message sync
+  redis: 'redis://localhost:6379',
 
-	sync: {
-		enabled: true
-	},
-	authentication: {
-		// storeConnectedUsers is also required for message sync
-		storeConnectedUsers: true
-	}
+  sync: {
+    enabled: true
+  },
+  authentication: {
+    // storeConnectedUsers is also required for message sync
+    storeConnectedUsers: true
+  }
 })
 ```
 
@@ -190,9 +190,9 @@ The `s` property notates the sequence position of the message. This is used to h
 If you want to implement a custom interval between message redeliveries, use the following configuration on the Mesa server:
 ```js
 sync: {
-	enabled: true,
+  enabled: true,
 
-	redeliveryInterval: 1000 // 1 second
+  redeliveryInterval: 1000 // 1 second
 }
 ```
 
@@ -216,15 +216,15 @@ const dispatcher = new Dispatcher('redis://localhost:6379')
 We provide expansive configuration support for customising Dispatcher to your needs. Here's a rundown of options we provide:
 ```ts
 {
-	// Optional: namespace for Redis events. This should match the namespace on the Mesa server you're targetting if that Mesa server has a namespace
-	namespace?: string
+  // Optional: namespace for Redis events. This should match the namespace on the Mesa server you're targetting if that Mesa server has a namespace
+  namespace?: string
 }
 ```
 
 To supply this config, pass it into the Dispatcher constructor as you would with any other configuration:
 ```js
 const dispatcher = new Dispatcher('redis://localhost:6379', {
-	namespace: 'api'
+  namespace: 'api'
 })
 ```
 
@@ -264,15 +264,15 @@ const client = new Client('ws://localhost:4000')
 We provide expansive configuration support for customising the Mesa client to your needs. Here's a rundown of options we provide:
 ```ts
 {
-	// Optional: enable/disable auto connection to the Mesa server once the client object has been instantiated. Enabled by default. Once disabled, use the 'connect()' method in order to connect the client to the Mesa server
-	autoConnect?: boolean
+  // Optional: enable/disable auto connection to the Mesa server once the client object has been instantiated. Enabled by default. Once disabled, use the 'connect()' method in order to connect the client to the Mesa server
+  autoConnect?: boolean
 }
 ```
 
 To supply this config, pass it into the Client constructor as you would with any other configuration:
 ```js
 const client = new Client('ws://localhost:4000', {
-	// Options go here
+  // Options go here
 })
 ```
 
@@ -281,17 +281,17 @@ We use the EventEmitter in order to inform the application of events from the Me
 const client = new Client('ws://localhost:4000')
 
 client.on('connection', () => {
-	console.log('Client connected')
+  console.log('Client connected')
 })
 
 client.on('message', message => {
-	const { data, type } = message
+  const { data, type } = message
 
-	console.log('Recieved', data, type)
+  console.log('Recieved', data, type)
 })
 
 client.on('disconnected', (code, reason) => {
-	console.log('Client disconnected')
+  console.log('Client disconnected')
 })
 ```
 
@@ -301,10 +301,10 @@ Mesa interacts with the server in order to authenticate the client using a simpl
 const client = new Client('ws://localhost:4000')
 
 client.on('connection', async () => {
-	console.log('Client connected')
+  console.log('Client connected')
 
-	const user = await client.authenticate({ token: fetchToken() })
-	console.log(`Hello ${user.name}!`)
+  const user = await client.authenticate({ token: fetchToken() })
+  console.log(`Hello ${user.name}!`)
 })
 ```
 
@@ -327,66 +327,66 @@ We recommend that you keep to opcode 0 for sending / recieving events via Mesa t
 Mesa's Server component allows for the following configuration to be passed in during initialization:
 ```ts
 {
-	// Optional: port that Mesa should listen on. Defaults to 4000
-	port: number
-	// Optional: namespace for Redis events. If you have multiple Mesa instances running on a cluster, you should use this
-	namespace: string
+  // Optional: port that Mesa should listen on. Defaults to 4000
+  port: number
+  // Optional: namespace for Redis events. If you have multiple Mesa instances running on a cluster, you should use this
+  namespace: string
 
-	// Optional: allow Mesa to use an already established HTTP server for listening
-	server: http.Server | https.Server
-	// Optional: support for pub/sub via Redis
-	redis: Redis.RedisOptions | string
+  // Optional: allow Mesa to use an already established HTTP server for listening
+  server: http.Server | https.Server
+  // Optional: support for pub/sub via Redis
+  redis: Redis.RedisOptions | string
 
-	// Optional
-	client?: {
-		// Optional: enforce the same Mesa version between server and client. Defaults to false
-		enforceEqualVersions?: boolean
-	}
-	// Optional
-	options?: {
-		// Optional: store messages on the client object. This setting applies to both server and client instances. Defaults to false
-		storeMessages?: boolean
-	}
+  // Optional
+  client?: {
+    // Optional: enforce the same Mesa version between server and client. Defaults to false
+    enforceEqualVersions?: boolean
+  }
+  // Optional
+  options?: {
+    // Optional: store messages on the client object. This setting applies to both server and client instances. Defaults to false
+    storeMessages?: boolean
+  }
 
-	// Optional
-	sync?: {
-		// Enable / disable message sync. Defaults to false
-		enabled: boolean
+  // Optional
+  sync?: {
+    // Enable / disable message sync. Defaults to false
+    enabled: boolean
 
-		// Optional: the interval in ms of message redeliveries. Defaults to 0ms
-		redeliveryInterval?: number
-	}
-	// Optional
-	heartbeat?: {
-		// Enable / disable heartbeats. Defaults to false
-		enabled: boolean
+    // Optional: the interval in ms of message redeliveries. Defaults to 0ms
+    redeliveryInterval?: number
+  }
+  // Optional
+  heartbeat?: {
+    // Enable / disable heartbeats. Defaults to false
+    enabled: boolean
 
-		// Optional: interval in ms for how often heartbeats should be sent to clients. Defaults to 10000ms
-		interval?: number
-		// Optional: how many heartbeats Mesa should send before closing the connection. Defaults to 3
-		maxAttempts?: number
-	}
-	// Optional
-	reconnect?: {
-		// Enable / disconnect reconnects. Defaults to false
-		enabled: boolean
+    // Optional: interval in ms for how often heartbeats should be sent to clients. Defaults to 10000ms
+    interval?: number
+    // Optional: how many heartbeats Mesa should send before closing the connection. Defaults to 3
+    maxAttempts?: number
+  }
+  // Optional
+  reconnect?: {
+    // Enable / disconnect reconnects. Defaults to false
+    enabled: boolean
 
-		// Optional: interval in ms for how often a client should try to reconnect once disconnected from a Mesa server. Defaults to 5000ms
-		interval?: number
-	}
+    // Optional: interval in ms for how often a client should try to reconnect once disconnected from a Mesa server. Defaults to 5000ms
+    interval?: number
+  }
 
-	// Optional
-	authentication?: {
-		// Optional: interval in ms for how long a client has to send authentication data before being disconnected from a Mesa server. Defaults to 10000ms
-		timeout?: number
+  // Optional
+  authentication?: {
+    // Optional: interval in ms for how long a client has to send authentication data before being disconnected from a Mesa server. Defaults to 10000ms
+    timeout?: number
 
-		// Optional: send the user object to the client once authentication is complete. Defaults to true
-		sendUserObject?: boolean
-		// Optional: disconnect the user if authentication failed. Defaults to true
-		disconnectOnFail?: boolean
-		// Optional: store the IDs of connected users in a Redis set called connected_clients. Defaults to true
-		storeConnectedUsers?: boolean
-	}
+    // Optional: send the user object to the client once authentication is complete. Defaults to true
+    sendUserObject?: boolean
+    // Optional: disconnect the user if authentication failed. Defaults to true
+    disconnectOnFail?: boolean
+    // Optional: store the IDs of connected users in a Redis set called connected_clients. Defaults to true
+    storeConnectedUsers?: boolean
+  }
 }
 ```
 
