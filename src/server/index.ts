@@ -223,6 +223,9 @@ class Server extends EventEmitter {
 	}
 
 	private async handleUndeliverableMessage(message: Message, recipient: string) {
+		if (recipient.trim().length === 0)
+			return
+
 		const namespace = this.clientNamespace('undelivered_messages'),
 				_undeliveredMessages = await this.redis.hget(namespace, recipient)
 
