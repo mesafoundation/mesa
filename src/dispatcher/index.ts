@@ -58,8 +58,13 @@ class Dispatcher {
 
 		if (this.config.sync.enabled)
 			for (let i = 0; i < _recipients.length; i++) {
-				const recipient = _recipients[i],
-							isRecipientOnline = await this.redis.sismember(connectedClientsNamespace, recipient)
+				const recipient = _recipients[i]
+				if (recipient === '*') {
+					recipients.push(recipient)
+					continue
+				}
+
+				const isRecipientOnline = await this.redis.sismember(connectedClientsNamespace, recipient)
 
 				if (isRecipientOnline)
 					recipients.push(recipient)
