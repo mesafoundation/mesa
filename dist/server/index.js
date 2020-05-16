@@ -46,6 +46,10 @@ class Server extends events_1.EventEmitter {
         const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
         recipients.forEach(recipient => recipient.send(message));
     }
+    registerDisconnection(disconnectingClient) {
+        const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId);
+        this.clients.splice(clientIndex, 1);
+    }
     pubSubNamespace() {
         return this.namespace ? `ws_${this.namespace}` : 'ws';
     }
@@ -58,7 +62,7 @@ class Server extends events_1.EventEmitter {
         else
             options.port = config.port || 4000;
         this.wss = new ws_1.default.Server(options);
-        this.wss.on('connection', socket => this.registerClient(socket));
+        this.wss.on('connection', (socket, req) => this.registerClient(socket, req));
     }
     parseConfig(config) {
         if (!config)
@@ -91,8 +95,8 @@ class Server extends events_1.EventEmitter {
             }
         }).subscribe(this.pubSubNamespace());
     }
-    registerClient(socket) {
-        const client = new client_1.default(socket, this);
+    registerClient(socket, req) {
+        const client = new client_1.default(socket, this, { req });
         client.send(new message_1.default(10, this.fetchClientConfig()));
         this.clients.push(client);
         this.emit('connection', client);

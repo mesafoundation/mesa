@@ -5,10 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 const message_1 = __importDefault(require("./message"));
+const id_util_1 = require("../utils/id.util");
 const getters_util_1 = require("../utils/getters.util");
 class Client extends events_1.EventEmitter {
-    constructor(socket, server) {
+    constructor(socket, server, additional) {
         super();
+        this.serverId = id_util_1.generateId();
         this.authenticated = false;
         this.messages = { sent: [], recieved: [] };
         this.heartbeatCount = 0;
@@ -16,6 +18,8 @@ class Client extends events_1.EventEmitter {
         this.heartbeatBuffer = [];
         this.socket = socket;
         this.server = server;
+        if (additional && additional.req)
+            this.request = additional.req;
         this.setup();
     }
     send(message, sendDirectly = false) {
@@ -121,6 +125,7 @@ class Client extends events_1.EventEmitter {
             this.server.redis.srem(this.clientNamespace('connected_clients'), this.id);
         this.emit('disconnect', code, reason);
         this.server.emit('disconnection', code, reason);
+        this.server.registerDisconnection(this);
     }
     async redeliverUndeliverableMessages() {
         const namespace = this.clientNamespace('undelivered_messages'), _undeliveredMessages = await this.server.redis.hget(namespace, this.id), messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval;

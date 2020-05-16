@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
+import http from 'http';
 import Server from '.';
 import Message, { IMessages } from './message';
 export declare type Rule = 'enforce_equal_versions' | 'store_messages' | 'sends_user_object';
@@ -14,6 +15,9 @@ interface IAuthenticationResult {
     id: string;
     user: any;
 }
+interface IClientAdditional {
+    req?: http.IncomingMessage;
+}
 declare type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void;
 declare type AuthenticationDoneCallback = (error: Error, user?: IAuthenticationResult) => void;
 declare interface Client extends EventEmitter {
@@ -22,18 +26,20 @@ declare interface Client extends EventEmitter {
 }
 declare class Client extends EventEmitter {
     id: string;
+    serverId: string;
     user: any;
     authenticated: boolean;
     socket: WebSocket;
-    messages: IMessages;
     server: Server;
+    request?: http.IncomingMessage;
+    messages: IMessages;
     authenticationCheck: AuthenticationCallback;
     private heartbeatInterval;
     private heartbeatCount;
     private heartbeatMaxAttempts;
     private heartbeatAttempts;
     private heartbeatBuffer;
-    constructor(socket: WebSocket, server: Server);
+    constructor(socket: WebSocket, server: Server, additional?: IClientAdditional);
     send(message: Message, sendDirectly?: boolean): void;
     authenticate(callback: AuthenticationCallback): void;
     updateUser(update: IAuthenticationResult): void;

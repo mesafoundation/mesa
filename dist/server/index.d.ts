@@ -64,6 +64,7 @@ declare class Server extends EventEmitter {
     authenticationConfig: IAuthenticationConfig;
     constructor(config?: IServerConfig);
     send(message: Message, _recipients?: string[], excluding?: string[]): Promise<number | void>;
+    registerDisconnection(disconnectingClient: Client): void;
     pubSubNamespace(): string;
     private setup;
     private parseConfig;

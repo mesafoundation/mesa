@@ -155,7 +155,7 @@ class Server extends EventEmitter {
 			options.port = config.port || 4000
 
 		this.wss = new WebSocket.Server(options)
-		this.wss.on('connection', socket => this.registerClient(socket))
+		this.wss.on('connection', (socket, req) => this.registerClient(socket, req))
 	}
 
 	private parseConfig(config?: IServerConfig) {
@@ -200,8 +200,8 @@ class Server extends EventEmitter {
 		}).subscribe(this.pubSubNamespace())
 	}
 
-	private registerClient(socket: WebSocket) {
-		const client = new Client(socket, this)
+	private registerClient(socket: WebSocket, req: http.IncomingMessage) {
+		const client = new Client(socket, this, { req })
 
 		client.send(new Message(10, this.fetchClientConfig()))
 
