@@ -106,7 +106,13 @@ class Server extends events_1.EventEmitter {
         recipients.forEach(client => client.send(message, true));
     }
     async handleUndeliverableMessage(message, recipient) {
-        if (recipient.trim().length === 0)
+        if (!recipient)
+            return;
+        else if (typeof recipient === 'undefined')
+            return;
+        else if (typeof recipient !== 'string')
+            return;
+        else if (recipient.trim().length === 0)
             return;
         const namespace = this.clientNamespace('undelivered_messages'), _undeliveredMessages = await this.redis.hget(namespace, recipient);
         let undeliveredMessages = [];

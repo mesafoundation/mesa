@@ -223,7 +223,13 @@ class Server extends EventEmitter {
 	}
 
 	private async handleUndeliverableMessage(message: Message, recipient: string) {
-		if (recipient.trim().length === 0)
+		if (!recipient)
+			return
+		else if (typeof recipient === 'undefined')
+			return
+		else if (typeof recipient !== 'string')
+			return
+		else if (recipient.trim().length === 0)
 			return
 
 		const namespace = this.clientNamespace('undelivered_messages'),
