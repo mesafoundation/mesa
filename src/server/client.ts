@@ -1,9 +1,12 @@
 import { EventEmitter } from 'events'
 import WebSocket from 'ws'
 
+import http from 'http'
+
 import Server from '.'
 import Message, { IMessage, IMessages } from './message'
 
+import { generateId } from '../utils/id.util'
 import { getVersion } from '../utils/getters.util'
 
 export type Rule = 'enforce_equal_versions' | 'store_messages' | 'sends_user_object'
@@ -21,6 +24,10 @@ interface IAuthenticationResult {
 	user: any
 }
 
+interface IClientAdditional {
+	req?: http.IncomingMessage
+}
+
 type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void
 type AuthenticationDoneCallback = (error: Error, user?: IAuthenticationResult) => void
 
@@ -32,15 +39,17 @@ declare interface Client extends EventEmitter {
 
 class Client extends EventEmitter {
 	public id: string
+	public serverId = generateId()
+
 	public user: any
 
 	public authenticated: boolean = false
 
 	public socket: WebSocket
+	public server: Server
+	public request?: http.IncomingMessage
 
 	public messages: IMessages = { sent: [], recieved: [] }
-
-	public server: Server
 
 	public authenticationCheck: AuthenticationCallback
 
@@ -50,11 +59,14 @@ class Client extends EventEmitter {
 	private heartbeatAttempts: number = 0
 	private heartbeatBuffer: Message[] = []
 
-	constructor(socket: WebSocket, server: Server) {
+	constructor(socket: WebSocket, server: Server, additional?: IClientAdditional) {
 		super()
 
 		this.socket = socket
 		this.server = server
+
+		if (additional && additional.req)
+			this.request = additional.req
 
 		this.setup()
 	}
@@ -192,6 +204,8 @@ class Client extends EventEmitter {
 
 		this.emit('disconnect', code, reason)
 		this.server.emit('disconnection', code, reason)
+
+		this.server.registerDisconnection(this)
 	}
 
 	private async redeliverUndeliverableMessages() {

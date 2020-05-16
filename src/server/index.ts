@@ -139,6 +139,12 @@ class Server extends EventEmitter {
 		recipients.forEach(recipient => recipient.send(message))
 	}
 
+	public registerDisconnection(disconnectingClient: Client) {
+		const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId)
+
+		this.clients.splice(clientIndex, 1)
+	}
+
 	public pubSubNamespace() {
 		return this.namespace ? `ws_${this.namespace}` : 'ws'
 	}
