@@ -43,8 +43,10 @@ class Server extends events_1.EventEmitter {
                 message: message.serialize(true),
                 recipients: _recipients || ['*']
             }));
-        const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
-        recipients.forEach(recipient => recipient.send(message));
+        else {
+            const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
+            recipients.forEach(recipient => recipient.send(message));
+        }
     }
     registerDisconnection(disconnectingClient) {
         const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId);

@@ -134,9 +134,10 @@ class Server extends EventEmitter {
 				message: message.serialize(true),
 				recipients: _recipients || ['*']
 			} as IInternalMessage))
-
-		const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1)
-		recipients.forEach(recipient => recipient.send(message))
+		else {
+			const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1)
+			recipients.forEach(recipient => recipient.send(message))
+		}
 	}
 
 	public registerDisconnection(disconnectingClient: Client) {
