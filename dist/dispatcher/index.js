@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const event_1 = __importDefault(require("./event"));
 const __1 = require("..");
 const helpers_util_1 = require("../utils/helpers.util");
+const sync_until_1 = require("../utils/sync.until");
 class Dispatcher {
     constructor(redis, config) {
         this.dispatch = (event, recipients = ['*'], excluding) => {
@@ -25,12 +26,27 @@ class Dispatcher {
         this.parseConfig = (config) => {
             if (!config)
                 config = {};
+            if (!config.sync)
+                config.sync = { enabled: false };
             return config;
         };
+        this.redis = helpers_util_1.createRedisClient(redis);
         this.publisher = helpers_util_1.createRedisClient(redis);
         this.config = this.parseConfig(config);
     }
-    dispatchMessage(message, recipients) {
+    async dispatchMessage(message, _recipients) {
+        const connectedClientsNamespace = this.clientNamespace('connected_clients'), undeliveredMessagesNamespace = this.clientNamespace('undelivered_messages');
+        let recipients = [];
+        if (this.config.sync.enabled)
+            for (let i = 0; i < _recipients.length; i++) {
+                const recipient = _recipients[i], isRecipientOnline = await this.redis.sismember(connectedClientsNamespace, recipient);
+                if (isRecipientOnline)
+                    recipients.push(recipient);
+                else
+                    sync_until_1.handleUndeliveredMessage(message, recipient, this.redis, undeliveredMessagesNamespace);
+            }
+        else
+            recipients = _recipients;
         this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
             message: message.serialize(true),
             recipients
@@ -42,8 +58,11 @@ class Dispatcher {
             recipients
         }));
     }
+    clientNamespace(prefix) {
+        return this.config.namespace ? `${prefix}_${this.config.namespace}` : prefix;
+    }
     pubSubNamespace() {
-        return this.config.namespace ? `ws_${this.config.namespace}` : 'ws';
+        return this.clientNamespace('ws');
     }
 }
 exports.default = Dispatcher;

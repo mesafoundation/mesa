@@ -180,6 +180,8 @@ const server = new Mesa({
 
 Now any time a message is sent to an offline client, either using `Mesa.send` or `Dispatcher.dispatch`, it'll automatically be sent as soon as they connect.
 
+*Note: If you're using the Dispatcher API, make sure that `sync.enabled` is set to `true` in your Dispatcher config.*
+
 Clients will recieve undelivered messages in this format:
 ```json
 { "op": 0, "d": {}, "t": "EXAMPLE_MESSAGE", "s": 3 }
@@ -218,13 +220,23 @@ We provide expansive configuration support for customising Dispatcher to your ne
 {
   // Optional: namespace for Redis events. This should match the namespace on the Mesa server you're targetting if that Mesa server has a namespace
   namespace?: string
+
+  // Optional
+  sync?: {
+    // Enable / disable message sync. Defaults to false
+    enabled: boolean
+  }
 }
 ```
 
 To supply this config, pass it into the Dispatcher constructor as you would with any other configuration:
 ```js
 const dispatcher = new Dispatcher('redis://localhost:6379', {
-  namespace: 'api'
+  namespace: 'api',
+
+  sync: {
+    enabled: true
+  }
 })
 ```
 

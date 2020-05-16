@@ -9,6 +9,7 @@ const client_1 = __importDefault(require("./client"));
 const message_1 = __importDefault(require("./message"));
 const utils_1 = require("../utils");
 const helpers_util_1 = require("../utils/helpers.util");
+const sync_until_1 = require("../utils/sync.until");
 class Server extends events_1.EventEmitter {
     constructor(config) {
         super();
@@ -106,25 +107,7 @@ class Server extends events_1.EventEmitter {
         recipients.forEach(client => client.send(message, true));
     }
     async handleUndeliverableMessage(message, recipient) {
-        if (!recipient)
-            return;
-        else if (typeof recipient === 'undefined')
-            return;
-        else if (typeof recipient !== 'string')
-            return;
-        else if (recipient.trim().length === 0)
-            return;
-        const namespace = this.clientNamespace('undelivered_messages'), _undeliveredMessages = await this.redis.hget(namespace, recipient);
-        let undeliveredMessages = [];
-        if (_undeliveredMessages)
-            try {
-                undeliveredMessages = JSON.parse(_undeliveredMessages);
-            }
-            catch (error) {
-                console.error(error);
-            }
-        undeliveredMessages.push(message.serialize(true));
-        this.redis.hset(namespace, recipient, JSON.stringify(undeliveredMessages));
+        sync_until_1.handleUndeliveredMessage(message, recipient, this.redis, this.clientNamespace('undelivered_messages'));
     }
     fetchClientConfig() {
         const config = {}, { serverOptions, clientConfig, authenticationConfig } = this, rules = utils_1.parseRules({ serverOptions, clientConfig, authenticationConfig });

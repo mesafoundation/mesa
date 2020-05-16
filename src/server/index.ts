@@ -10,6 +10,7 @@ import Message, { IInternalMessage, IMessage } from './message'
 
 import { parseConfig, parseRules } from '../utils'
 import { createRedisClient } from '../utils/helpers.util'
+import { handleUndeliveredMessage } from '../utils/sync.until'
 
 export type RedisConfig = string | Redis.RedisOptions
 
@@ -223,30 +224,7 @@ class Server extends EventEmitter {
 	}
 
 	private async handleUndeliverableMessage(message: Message, recipient: string) {
-		if (!recipient)
-			return
-		else if (typeof recipient === 'undefined')
-			return
-		else if (typeof recipient !== 'string')
-			return
-		else if (recipient.trim().length === 0)
-			return
-
-		const namespace = this.clientNamespace('undelivered_messages'),
-				_undeliveredMessages = await this.redis.hget(namespace, recipient)
-
-		let undeliveredMessages: IMessage[] = []
-
-		if (_undeliveredMessages)
-			try {
-				undeliveredMessages = JSON.parse(_undeliveredMessages)
-			} catch (error) {
-				console.error(error)
-			}
-
-		undeliveredMessages.push(message.serialize(true) as IMessage)
-
-		this.redis.hset(namespace, recipient, JSON.stringify(undeliveredMessages))
+		handleUndeliveredMessage(message, recipient, this.redis, this.clientNamespace('undelivered_messages'))
 	}
 
 	private fetchClientConfig() {

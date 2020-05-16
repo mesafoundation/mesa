@@ -5,21 +5,32 @@ import DispatchEvent from './event'
 import { Message } from '..'
 import { RedisConfig } from '../server'
 
-import { IInternalMessage } from '../server/message'
+import { IInternalMessage, IMessage } from '../server/message'
 import { createRedisClient } from '../utils/helpers.util'
+import { handleUndeliveredMessage } from '../utils/sync.until'
 
 type Dispatchable = Message | DispatchEvent
 
+interface IDispatcherSyncConfig {
+	enabled: boolean
+}
+
 interface IDispatcherConfig {
 	namespace?: string
+
+	sync?: IDispatcherSyncConfig
 }
 
 class Dispatcher {
+	private redis: Redis.Redis
 	private publisher: Redis.Redis
+
 	private config: IDispatcherConfig
 
 	constructor(redis: RedisConfig, config?: IDispatcherConfig) {
+		this.redis = createRedisClient(redis)
 		this.publisher = createRedisClient(redis)
+
 		this.config = this.parseConfig(config)
 	}
 
@@ -39,7 +50,25 @@ class Dispatcher {
 		}
 	}
 
-	private dispatchMessage(message: Message, recipients: string[]) {
+	private async dispatchMessage(message: Message, _recipients: string[]) {
+		const connectedClientsNamespace = this.clientNamespace('connected_clients'),
+					undeliveredMessagesNamespace = this.clientNamespace('undelivered_messages')
+
+		let recipients: string[] = []
+
+		if (this.config.sync.enabled)
+			for (let i = 0; i < _recipients.length; i++) {
+				const recipient = _recipients[i],
+							isRecipientOnline = await this.redis.sismember(connectedClientsNamespace, recipient)
+
+				if (isRecipientOnline)
+					recipients.push(recipient)
+				else
+					handleUndeliveredMessage(message, recipient, this.redis, undeliveredMessagesNamespace)
+			}
+		else
+			recipients = _recipients
+
 		this.publisher.publish(
 			this.pubSubNamespace(),
 			JSON.stringify({
@@ -59,13 +88,20 @@ class Dispatcher {
 		)
 	}
 
+	private clientNamespace(prefix: string) {
+		return this.config.namespace ? `${prefix}_${this.config.namespace}` : prefix
+	}
+
 	private pubSubNamespace() {
-		return this.config.namespace ? `ws_${this.config.namespace}` : 'ws'
+		return this.clientNamespace('ws')
 	}
 
 	private parseConfig = (config?: IDispatcherConfig) => {
 		if (!config)
 			config = {}
+
+		if (!config.sync)
+			config.sync = { enabled: false }
 
 		return config
 	}
