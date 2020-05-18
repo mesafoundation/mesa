@@ -11,6 +11,10 @@ export interface IClientConnectionConfig {
     c_authentication_timeout?: number;
     rules?: Rule[];
 }
+interface IClientAuthenticationConfig {
+    token?: string;
+    shouldSync?: boolean;
+}
 interface IAuthenticationResult {
     id: string;
     user: any;
@@ -29,6 +33,7 @@ declare class Client extends EventEmitter {
     serverId: string;
     user: any;
     authenticated: boolean;
+    clientConfig: IClientAuthenticationConfig;
     socket: WebSocket;
     server: Server;
     request?: http.IncomingMessage;
@@ -44,12 +49,14 @@ declare class Client extends EventEmitter {
     authenticate(callback: AuthenticationCallback): void;
     updateUser(update: IAuthenticationResult): void;
     disconnect(code?: number): void;
+    private parseAuthenticationConfig;
     private setup;
     private heartbeat;
     private registerMessage;
     private registerAuthentication;
     private registerDisconnection;
     private redeliverUndeliverableMessages;
+    private clearUndeliveredMessages;
     private clientNamespace;
 }
 export default Client;

@@ -6,8 +6,8 @@ import http from 'http'
 import Server from '.'
 import Message, { IMessage, IMessages } from './message'
 
-import { generateId } from '../utils/id.util'
 import { getVersion } from '../utils/getters.util'
+import { generateId } from '../utils/id.util'
 
 export type Rule = 'enforce_equal_versions' | 'store_messages' | 'sends_user_object'
 
@@ -17,6 +17,12 @@ export interface IClientConnectionConfig {
 	c_authentication_timeout?: number
 
 	rules?: Rule[]
+}
+
+interface IClientAuthenticationConfig {
+	token?: string
+
+	shouldSync?: boolean
 }
 
 interface IAuthenticationResult {
@@ -44,6 +50,7 @@ class Client extends EventEmitter {
 	public user: any
 
 	public authenticated: boolean = false
+	public clientConfig: IClientAuthenticationConfig
 
 	public socket: WebSocket
 	public server: Server
@@ -110,6 +117,19 @@ class Client extends EventEmitter {
 		this.socket.close(code)
 	}
 
+	private parseAuthenticationConfig(config: IClientAuthenticationConfig) {
+		if (!config)
+				config = {}
+
+		if (typeof config.shouldSync === 'undefined')
+			config.shouldSync = true
+
+		if (config.token)
+			delete config.token
+
+		return config
+	}
+
 	private setup() {
 		const { socket } = this
 
@@ -157,9 +177,11 @@ class Client extends EventEmitter {
 					if (v !== getVersion() && this.server.clientConfig.enforceEqualVersions)
 						return this.disconnect(1002)
 			}
-		else if (op === 2 && this.authenticationCheck)
+		else if (op === 2 && this.authenticationCheck) {
+			this.clientConfig = this.parseAuthenticationConfig(d)
+
 			return this.authenticationCheck(d, (error, result) => this.registerAuthentication(error, result))
-		else if (op === 11)
+		} else if (op === 11)
 			return this.heartbeatBuffer.push(message)
 
 		this.emit('message', message)
@@ -183,11 +205,16 @@ class Client extends EventEmitter {
 		this.id = id
 		this.user = user
 
-		if (this.server.syncConfig.enabled && this.server.redis)
-			this.redeliverUndeliverableMessages()
+		if (this.server.redis) {
+			if (this.server.syncConfig.enabled)
+				if (this.clientConfig.shouldSync)
+					this.redeliverUndeliverableMessages()
+				else
+					this.clearUndeliveredMessages()
 
-		if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
-			this.server.redis.sadd(this.clientNamespace('connected_clients'), id)
+			if (this.server.authenticationConfig.storeConnectedUsers)
+				this.server.redis.sadd(this.clientNamespace('connected_clients'), id)
+		}
 
 		if (!this.authenticated)
 			this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}))
@@ -210,8 +237,8 @@ class Client extends EventEmitter {
 
 	private async redeliverUndeliverableMessages() {
 		const namespace = this.clientNamespace('undelivered_messages'),
-				_undeliveredMessages = await this.server.redis.hget(namespace, this.id),
-				messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval
+					_undeliveredMessages = await this.server.redis.hget(namespace, this.id),
+					messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval
 
 		let undeliveredMessages: IMessage[] = []
 
@@ -226,21 +253,24 @@ class Client extends EventEmitter {
 			new Message(message.op, message.d, message.t, { sequence })
 		)
 
-		if (messageRedeliveryInterval) {
-			let interval: NodeJS.Timeout,
+		let interval: NodeJS.Timeout,
 				messageIndex = 0
 
-			interval = setInterval(() => {
-				const message = messages[messageIndex]
-				if (!message)
-					return clearInterval(interval)
+		interval = setInterval(() => {
+			const message = messages[messageIndex]
+			if (!message)
+				return clearInterval(interval)
 
-				this.send(message, true)
+			this.send(message, true)
 
-				messageIndex += 1
-			}, messageRedeliveryInterval)
-		} else
-			messages.forEach(message => this.send(message, true))
+			messageIndex += 1
+		}, messageRedeliveryInterval || 0)
+
+		this.clearUndeliveredMessages()
+	}
+
+	private async clearUndeliveredMessages() {
+		const namespace = this.clientNamespace('undelivered_messages')
 
 		this.server.redis.hdel(namespace, this.id)
 	}

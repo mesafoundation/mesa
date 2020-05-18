@@ -34,9 +34,10 @@ class Client extends events_1.EventEmitter {
             this.ws.on('close', (code, reason) => this.registerClose(code, reason));
             this.ws.on('error', error => this.registerError(error));
         });
-        this.authenticate = (data) => new Promise(async (resolve, reject) => {
+        this.authenticate = (data, config) => new Promise(async (resolve, reject) => {
+            config = this.parseAuthenticationConfig(config);
             this.authenticationResolve = resolve;
-            this.send(new message_1.default(2, Object.assign({}, data)));
+            this.send(new message_1.default(2, Object.assign(Object.assign({}, data), config)));
         });
         config = this.parseConfig(config);
         this.url = url;
@@ -59,6 +60,13 @@ class Client extends events_1.EventEmitter {
             config = {};
         if (typeof config.autoConnect === 'undefined')
             config.autoConnect = true;
+        return config;
+    }
+    parseAuthenticationConfig(config) {
+        if (!config)
+            config = {};
+        if (typeof config.shouldSync === 'undefined')
+            config.shouldSync = true;
         return config;
     }
     connectAndSupressWarnings() {

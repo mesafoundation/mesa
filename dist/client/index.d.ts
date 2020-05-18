@@ -4,6 +4,9 @@ import Message, { IMessages } from '../server/message';
 interface IClientConfig {
     autoConnect?: boolean;
 }
+interface IClientAuthenticationConfig {
+    shouldSync?: boolean;
+}
 declare interface Client extends EventEmitter {
     on(event: 'connected', listener: (this: Client) => void): this;
     on(event: 'message', listener: (this: Client, message: Message) => void): this;
@@ -26,9 +29,10 @@ declare class Client extends EventEmitter {
     constructor(url: string, config?: IClientConfig);
     connect: () => Promise<unknown>;
     send(message: Message): number;
-    authenticate: (data: object) => Promise<unknown>;
+    authenticate: (data: object, config?: IClientAuthenticationConfig) => Promise<unknown>;
     disconnect(code?: number, data?: string): void;
     private parseConfig;
+    private parseAuthenticationConfig;
     private connectAndSupressWarnings;
     private registerOpen;
     private registerMessage;

@@ -5,8 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 const message_1 = __importDefault(require("./message"));
-const id_util_1 = require("../utils/id.util");
 const getters_util_1 = require("../utils/getters.util");
+const id_util_1 = require("../utils/id.util");
 class Client extends events_1.EventEmitter {
     constructor(socket, server, additional) {
         super();
@@ -52,6 +52,15 @@ class Client extends events_1.EventEmitter {
     disconnect(code) {
         this.socket.close(code);
     }
+    parseAuthenticationConfig(config) {
+        if (!config)
+            config = {};
+        if (typeof config.shouldSync === 'undefined')
+            config.shouldSync = true;
+        if (config.token)
+            delete config.token;
+        return config;
+    }
     setup() {
         const { socket } = this;
         if (this.server.heartbeatConfig.enabled) {
@@ -91,8 +100,10 @@ class Client extends events_1.EventEmitter {
                     if (v !== getters_util_1.getVersion() && this.server.clientConfig.enforceEqualVersions)
                         return this.disconnect(1002);
             }
-        else if (op === 2 && this.authenticationCheck)
+        else if (op === 2 && this.authenticationCheck) {
+            this.clientConfig = this.parseAuthenticationConfig(d);
             return this.authenticationCheck(d, (error, result) => this.registerAuthentication(error, result));
+        }
         else if (op === 11)
             return this.heartbeatBuffer.push(message);
         this.emit('message', message);
@@ -110,10 +121,15 @@ class Client extends events_1.EventEmitter {
             throw new Error('No user object supplied in result callback');
         this.id = id;
         this.user = user;
-        if (this.server.syncConfig.enabled && this.server.redis)
-            this.redeliverUndeliverableMessages();
-        if (this.server.authenticationConfig.storeConnectedUsers && this.server.redis)
-            this.server.redis.sadd(this.clientNamespace('connected_clients'), id);
+        if (this.server.redis) {
+            if (this.server.syncConfig.enabled)
+                if (this.clientConfig.shouldSync)
+                    this.redeliverUndeliverableMessages();
+                else
+                    this.clearUndeliveredMessages();
+            if (this.server.authenticationConfig.storeConnectedUsers)
+                this.server.redis.sadd(this.clientNamespace('connected_clients'), id);
+        }
         if (!this.authenticated)
             this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}));
         this.authenticated = true;
@@ -138,18 +154,18 @@ class Client extends events_1.EventEmitter {
                 console.error(error);
             }
         const messages = undeliveredMessages.map((message, sequence) => new message_1.default(message.op, message.d, message.t, { sequence }));
-        if (messageRedeliveryInterval) {
-            let interval, messageIndex = 0;
-            interval = setInterval(() => {
-                const message = messages[messageIndex];
-                if (!message)
-                    return clearInterval(interval);
-                this.send(message, true);
-                messageIndex += 1;
-            }, messageRedeliveryInterval);
-        }
-        else
-            messages.forEach(message => this.send(message, true));
+        let interval, messageIndex = 0;
+        interval = setInterval(() => {
+            const message = messages[messageIndex];
+            if (!message)
+                return clearInterval(interval);
+            this.send(message, true);
+            messageIndex += 1;
+        }, messageRedeliveryInterval || 0);
+        this.clearUndeliveredMessages();
+    }
+    async clearUndeliveredMessages() {
+        const namespace = this.clientNamespace('undelivered_messages');
         this.server.redis.hdel(namespace, this.id);
     }
     clientNamespace(prefix) {

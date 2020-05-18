@@ -9,6 +9,10 @@ interface IClientConfig {
 	autoConnect?: boolean
 }
 
+interface IClientAuthenticationConfig {
+	shouldSync?: boolean
+}
+
 // tslint:disable-next-line: interface-name
 declare interface Client extends EventEmitter {
 	on(event: 'connected', listener: (this: Client) => void): this
@@ -90,9 +94,11 @@ class Client extends EventEmitter {
 		this.ws.send(message.serialize())
 	}
 
-	public authenticate = (data: object) => new Promise(async (resolve, reject) => {
+	public authenticate = (data: object, config?: IClientAuthenticationConfig) => new Promise(async (resolve, reject) => {
+		config = this.parseAuthenticationConfig(config)
+
 		this.authenticationResolve = resolve
-		this.send(new Message(2, { ...data }))
+		this.send(new Message(2, { ...data, ...config }))
 	})
 
 	public disconnect(code?: number, data?: string) {
@@ -105,6 +111,16 @@ class Client extends EventEmitter {
 
 		if (typeof config.autoConnect === 'undefined')
 			config.autoConnect = true
+
+		return config
+	}
+
+	private parseAuthenticationConfig(config?: IClientAuthenticationConfig) {
+		if (!config)
+			config = {}
+
+		if (typeof config.shouldSync === 'undefined')
+			config.shouldSync = true
 
 		return config
 	}
