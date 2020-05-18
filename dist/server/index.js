@@ -44,7 +44,7 @@ class Server extends events_1.EventEmitter {
                 recipients: _recipients || ['*']
             }));
         else {
-            let recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
+            const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
             this._send(message, recipients);
         }
     }

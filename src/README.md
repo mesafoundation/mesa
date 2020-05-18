@@ -16,6 +16,7 @@ _**Mesa** — Robust, reliable WebSockets_
     * [Server Side](#server-side)
         * [Authenticating Clients](#authenticating-clients)
         * [Message Sync](#message-sync)
+          * [Client Sync Options](#client-sync-options)
         * [Dispatch Events](#dispatch-events)
     * [Client Side](#client-side)
         * [JavaScript](#javascript)
@@ -23,7 +24,7 @@ _**Mesa** — Robust, reliable WebSockets_
     * [Opcodes](#opcodes)
   * [Configuration](#configuration)
 * [Client Libraries](#client-libraries)
-  * [Creating a client library](#creating-a-client-library)
+  * [Creating a Client Library](#creating-a-client-library)
   * [Future Libraries](#future-libraries)
 * [Questions / Issues](#questions--issues)
 
@@ -200,6 +201,22 @@ sync: {
 
 Authentication via the `client.authenticate` API is required for message sync to work
 
+##### Client Sync Options
+We also support client configuration for message sync. For example, if a client is connecting to Mesa alongside reaching out to a REST API on its initial state load, the client can opt-out of recieving missed messages using the following API:
+```js
+client.authenticate({ token: fetchToken() }, { shouldSync: false })
+```
+
+If you want to only use sync on reconnects, look at the following example using [`mesa-js-client`](https://github.com/neoncloth/mesa-js-client):
+```js
+client.on('connection', async ({ isInitialConnection }) => {
+  console.log('Connected to Mesa')
+
+  // Only sync on connections after first connection or on reconnections
+  await client.authenticate({ token: fetchToken() }, { shouldSync: !isInitialConnection })
+})
+```
+
 #### Dispatch Events
 Dispatch events are server-side events that are used to send messages to Mesa clients throughout a large codebase. Codebases that split their code up between multiple files will find dispatch events particularly useful.
 
@@ -308,7 +325,7 @@ client.on('disconnected', (code, reason) => {
 ```
 
 ##### Authentication
-Mesa interacts with the server in order to authenticate the client using a simple API. In order to authenticate with the server, you can use the `authenticate()` API. See the following example:
+Mesa interacts with the server in order to authenticate the client using a simple API. In order to authenticate with the server, you can use the `Client.authenticate` API. See the following example:
 ```js
 const client = new Client('ws://localhost:4000')
 
@@ -318,6 +335,14 @@ client.on('connection', async () => {
   const user = await client.authenticate({ token: fetchToken() })
   console.log(`Hello ${user.name}!`)
 })
+```
+
+We allow clients to provide a configuration for authenticating with Mesa, alongside their authorization object. Here's a rundown of options we provide:
+```ts
+{
+  // Optional: specifies if the server should send any missed messages as per the Sync feature. Defaults to true
+  shouldSync?: boolean
+}
 ```
 
 ### Opcodes
@@ -392,6 +417,8 @@ Mesa's Server component allows for the following configuration to be passed in d
     // Optional: interval in ms for how long a client has to send authentication data before being disconnected from a Mesa server. Defaults to 10000ms
     timeout?: number
 
+    // Optional: messages sent using Mesa.send will not be sent to unauthenticated clients. Defaults to false
+    required?: boolean
     // Optional: send the user object to the client once authentication is complete. Defaults to true
     sendUserObject?: boolean
     // Optional: disconnect the user if authentication failed. Defaults to true
@@ -407,7 +434,7 @@ While we have an official Client implementation for Node.js in this library, we 
 
 * [mesa-js-client](https://github.com/neoncloth/mesa-js-client) for browser-based JavaScript. Maintained by Cryb
 
-### Creating a client library
+### Creating a Client Library
 We'd love for the community to create implementations of the Mesa client. Make sure to title the library in the style of `mesa-lang-client`. For example, a Go library would take the name of `mesa-go-client`.
 
 In the future we'll publish a specification so it's easier to understand how the client interacts with a Mesa server, but for now please look over [`client.ts`](https://github.com/crybapp/mesa/blob/master/src/client/index.ts). If you do create a client library, please let us know [on our Discord](https://discord.gg/ShTATH4)
