@@ -21,7 +21,7 @@ class Server extends events_1.EventEmitter {
         if (_recipients && excluding)
             _recipients = _recipients.filter(recipient => excluding.indexOf(recipient) === -1);
         if (!this.redis && !_recipients)
-            return this.clients.forEach(client => client.send(message, true));
+            return this._send(message, this.clients);
         if (this.redis && _recipients && this.syncConfig.enabled) {
             const namespace = this.clientNamespace('connected_clients'), onlineRecipients = [], offlineRecipients = [];
             if (_recipients && this.syncConfig.enabled)
@@ -44,8 +44,8 @@ class Server extends events_1.EventEmitter {
                 recipients: _recipients || ['*']
             }));
         else {
-            const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
-            recipients.forEach(recipient => recipient.send(message));
+            let recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
+            this._send(message, recipients);
         }
     }
     registerDisconnection(disconnectingClient) {
@@ -78,10 +78,19 @@ class Server extends events_1.EventEmitter {
         this.syncConfig = config.sync || { enabled: false };
         this.heartbeatConfig = config.heartbeat || { enabled: false };
         this.reconnectConfig = config.reconnect || { enabled: false };
-        this.authenticationConfig = utils_1.parseConfig(config.authentication, ['timeout', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, true, true, true]);
+        this.authenticationConfig = utils_1.parseConfig(config.authentication, ['timeout', 'required', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, false, true, true, true]);
         if (this.syncConfig && this.syncConfig.enabled && !this.authenticationConfig.storeConnectedUsers)
             console.warn('Mesa requires config.authentication.storeConnectedUsers to be true for message sync to be enabled');
         return config;
+    }
+    _send(message, recipients) {
+        // Authentication.required rule
+        if (this.authenticationConfig.required)
+            recipients = recipients.filter(({ authenticated }) => !!authenticated);
+        // Don't send if no recipients
+        if (recipients.length === 0)
+            return;
+        recipients.forEach(recipient => recipient.send(message));
     }
     setupRedis(redisConfig) {
         const redis = helpers_util_1.createRedisClient(redisConfig), publisher = helpers_util_1.createRedisClient(redisConfig), subscriber = helpers_util_1.createRedisClient(redisConfig);

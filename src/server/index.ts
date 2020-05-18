@@ -43,6 +43,7 @@ export interface IReconnectConfig {
 export interface IAuthenticationConfig {
 	timeout?: 10000 | number
 
+	required?: boolean
 	sendUserObject?: boolean
 	disconnectOnFail?: boolean
 	storeConnectedUsers?: boolean
@@ -102,17 +103,17 @@ class Server extends EventEmitter {
 			_recipients = _recipients.filter(recipient => excluding.indexOf(recipient) === -1)
 
 		if (!this.redis && !_recipients)
-			return this.clients.forEach(client => client.send(message, true))
+			return this._send(message, this.clients)
 
 		if (this.redis && _recipients && this.syncConfig.enabled) {
 			const namespace = this.clientNamespace('connected_clients'),
-					onlineRecipients = [],
-					offlineRecipients = []
+						onlineRecipients = [],
+						offlineRecipients = []
 
 			if (_recipients && this.syncConfig.enabled)
 				for (let i = 0; i < _recipients.length; i++) {
 					const recipient = _recipients[i],
-							isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
+								isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
 
 					(isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient)
 				}
@@ -136,7 +137,8 @@ class Server extends EventEmitter {
 			} as IInternalMessage))
 		else {
 			const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1)
-			recipients.forEach(recipient => recipient.send(message))
+
+			this._send(message, recipients)
 		}
 	}
 
@@ -181,7 +183,7 @@ class Server extends EventEmitter {
 		this.syncConfig = config.sync || { enabled: false }
 		this.heartbeatConfig = config.heartbeat || { enabled: false }
 		this.reconnectConfig = config.reconnect || { enabled: false }
-		this.authenticationConfig = parseConfig(config.authentication, ['timeout', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, true, true, true])
+		this.authenticationConfig = parseConfig(config.authentication, ['timeout', 'required', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, false, true, true, true])
 
 		if (this.syncConfig && this.syncConfig.enabled && !this.authenticationConfig.storeConnectedUsers)
 			console.warn('Mesa requires config.authentication.storeConnectedUsers to be true for message sync to be enabled')
@@ -189,10 +191,22 @@ class Server extends EventEmitter {
 		return config
 	}
 
+	private _send(message: Message, recipients: Client[]) {
+		// Authentication.required rule
+		if (this.authenticationConfig.required)
+			recipients = recipients.filter(({ authenticated }) => !!authenticated)
+
+		// Don't send if no recipients
+		if (recipients.length === 0)
+			return
+
+		recipients.forEach(recipient => recipient.send(message))
+	}
+
 	private setupRedis(redisConfig: RedisConfig) {
 		const redis: Redis.Redis = createRedisClient(redisConfig),
-			publisher: Redis.Redis = createRedisClient(redisConfig),
-			subscriber: Redis.Redis = createRedisClient(redisConfig)
+					publisher: Redis.Redis = createRedisClient(redisConfig),
+					subscriber: Redis.Redis = createRedisClient(redisConfig)
 
 		this.redis = redis
 		this.publisher = publisher

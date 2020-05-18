@@ -28,6 +28,7 @@ export interface IReconnectConfig {
 }
 export interface IAuthenticationConfig {
     timeout?: 10000 | number;
+    required?: boolean;
     sendUserObject?: boolean;
     disconnectOnFail?: boolean;
     storeConnectedUsers?: boolean;
@@ -68,6 +69,7 @@ declare class Server extends EventEmitter {
     pubSubNamespace(): string;
     private setup;
     private parseConfig;
+    private _send;
     private setupRedis;
     private registerClient;
     private handleInternalMessage;
