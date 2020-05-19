@@ -29,13 +29,15 @@ _**Mesa** — Robust, reliable WebSockets_
 * [Questions / Issues](#questions--issues)
 
 ## Info
-`@cryb/mesa` is a wrapper around the [ws](https://www.npmjs.com/package/ws) library that provides extra features ontop of WebSockets such as Heartbeats and Redis Pub/Sub.
+`@cryb/mesa` is a wrapper around the [ws](https://www.npmjs.com/package/ws) library that provides extra features such as heartbeats, automatic reconnection handling and Redis pub/sub support.
 
-`ws` on its own is incredibly bare. It doesn't provide support for high throughput modern applications such as scaling support, heartbeats, reconnection acks. Furthermore, many applications have to write their own implementations for user authentication while using WebSockets.
+`ws` on its own usually isn't enough. It doesn't provide features out of the box required by modern applications such as replication support and reconnection handling. Many users either stick to [Socket.IO](https://socket.io) or write their own implementations for authentication, reconnections and pub/sub around the `ws` package.
 
-Mesa was written to provide a robust solution to this. Modeled after Discord's WebSockets, Mesa was first utilised in `@cryb/api`. After a while we wanted to expand our microservices utilising the robust WebSocket solution we had instilled in `@cryb/api`. Thus, Mesa was born.
+Mesa was created to provide a wrapper around `ws` to allow developers to quickly deploy a WebSocket server with all the features they need a simple configuration update away.
 
-In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub, authentication, heartbeats and more
+Modeled somewhat after Discord's WebSockets, Mesa was first created by [William](https://github.com/neoncloth) in a client project before making its way into `@cryb/api`. After a while we wanted to add WebSocket capabilities to other services we were working on utilising the robust WebSocket solution we had created in `@cryb/api`. Thus, Mesa was born.
+
+In a nutshell, Mesa provides a simple, configurable wrapper that provides support for pub/sub, authentication, heartbeats and more and has powered production applications with millions of users since mid-2019
 
 ### Features
 * Heartbeat support
@@ -46,7 +48,11 @@ In a nutshell, Mesa provides a simple wrapper that provides support for pub/sub,
 * Pub/sub support via Redis
 
 #### Planned Features
+* Specification
+* Redis config support
 * Better error reporting
+* Custom message interface
+* Less dependency on Redis
 * Plugin / middleware support
 * Better disconnection handling
 
@@ -274,7 +280,7 @@ In the future we'll create an API for creating and handling custom dispatch even
 *Note: in the future we plan to migrate from Dispatcher connecting via Redis Pub/Sub to directly connecting to Mesa. The Dispatcher API is early, so please keep this in mind while writing implementations*
 
 ### Client Side
-We currently provide client libraries for both browser and server-based JavaScript
+We currently provide client libraries for Node-based JavaScript. For a browser-based client library, see [mesa-js-client](https://github.com/neoncloth/mesa-js-client)
 
 #### <a name="client-authentication"></a> JavaScript
 Import the Client export from the library as you would with any other Node package:
@@ -432,7 +438,8 @@ Mesa's Server component allows for the following configuration to be passed in d
 ## Client Libraries
 While we have an official Client implementation for Node.js in this library, we do offer client libraries for other languages. Here's a list of official or community maintained client libraries:
 
-* [mesa-js-client](https://github.com/neoncloth/mesa-js-client) for browser-based JavaScript. Maintained by Cryb
+* [mesa-js-client](https://github.com/neoncloth/mesa-js-client) for browser-based JavaScript. Maintained by William from Cryb
+* [mesa-react-native](https://gist.github.com/neoncloth/0152667cecd9ffad21b6939ecc82a87e) for React Native. Maintained by William from Cryb
 
 ### Creating a Client Library
 We'd love for the community to create implementations of the Mesa client. Make sure to title the library in the style of `mesa-lang-client`. For example, a Go library would take the name of `mesa-go-client`.
