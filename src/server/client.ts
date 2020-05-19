@@ -117,9 +117,8 @@ class Client extends EventEmitter {
 		this.socket.close(code)
 	}
 
-	private parseAuthenticationConfig(config: IClientAuthenticationConfig) {
-		if (!config)
-				config = {}
+	private parseAuthenticationConfig(_config: IClientAuthenticationConfig) {
+		const config = Object.assign({}, _config)
 
 		if (typeof config.shouldSync === 'undefined')
 			config.shouldSync = true

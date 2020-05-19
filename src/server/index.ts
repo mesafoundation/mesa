@@ -167,9 +167,8 @@ class Server extends EventEmitter {
 		this.wss.on('connection', (socket, req) => this.registerClient(socket, req))
 	}
 
-	private parseConfig(config?: IServerConfig) {
-		if (!config)
-			config = {}
+	private parseConfig(_config?: IServerConfig) {
+		const config = Object.assign({}, _config)
 
 		if (config.namespace)
 			this.namespace = config.namespace

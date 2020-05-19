@@ -55,16 +55,14 @@ class Client extends events_1.EventEmitter {
     disconnect(code, data) {
         this.ws.close(code, data);
     }
-    parseConfig(config) {
-        if (!config)
-            config = {};
+    parseConfig(_config) {
+        const config = Object.assign({}, _config);
         if (typeof config.autoConnect === 'undefined')
             config.autoConnect = true;
         return config;
     }
-    parseAuthenticationConfig(config) {
-        if (!config)
-            config = {};
+    parseAuthenticationConfig(_config) {
+        const config = Object.assign({}, _config);
         if (typeof config.shouldSync === 'undefined')
             config.shouldSync = true;
         return config;

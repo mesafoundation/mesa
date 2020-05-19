@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseConfig = (config, keys, values) => {
+exports.parseConfig = (_config, keys, values) => {
+    const config = Object.assign({}, _config);
     if (!config)
         config = {};
     keys.forEach((key, i) => {
@@ -11,7 +12,7 @@ exports.parseConfig = (config, keys, values) => {
     return config;
 };
 exports.parseRules = (configs) => {
-    const { serverOptions, clientConfig, authenticationConfig } = configs, rules = [], ruleKeys = ['enforce_equal_versions', 'store_messages', 'sends_user_object'], ruleValues = [
+    const { serverOptions, clientConfig, authenticationConfig } = Object.assign({}, configs), rules = [], ruleKeys = ['enforce_equal_versions', 'store_messages', 'sends_user_object'], ruleValues = [
         !!clientConfig.enforceEqualVersions,
         !!serverOptions.storeMessages,
         !!authenticationConfig.sendUserObject

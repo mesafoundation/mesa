@@ -1,7 +1,9 @@
 import { Rule } from './server/client'
 import { IServerOptions, IClientConfig, IAuthenticationConfig } from './server'
 
-export const parseConfig = <T>(config: T, keys: (keyof T)[], values: any[]) => {
+export const parseConfig = <T>(_config: T, keys: (keyof T)[], values: any[]) => {
+	const config: T = Object.assign({}, _config)
+
 	if (!config) (config as any) = {}
 
 	keys.forEach((key, i) => {
@@ -21,7 +23,7 @@ interface IConfigs {
 }
 
 export const parseRules = (configs: IConfigs) => {
-	const { serverOptions, clientConfig, authenticationConfig } = configs,
+	const { serverOptions, clientConfig, authenticationConfig } = Object.assign({}, configs),
 		rules: Rule[] = [],
 		ruleKeys: Rule[] = ['enforce_equal_versions', 'store_messages', 'sends_user_object'],
 		ruleValues = [
