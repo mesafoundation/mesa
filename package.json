@@ -2,6 +2,7 @@
     "scripts": {
         "build": "bash ./scripts/build.sh",
         "deploy": "bash ./scripts/deploy.sh",
+        "test": "jest",
         "lint": "tslint src/**/*.ts{,x}"
     },
     "husky": {
@@ -22,6 +23,7 @@
         "gulp": "^4.0.0",
         "gulp-typescript": "^5.0.1",
         "husky": "^3.1.0",
+        "jest": "^26.0.1",
         "minimatch": ">=3.0.2",
         "rimraf": "^2.6.3",
         "ts-node": "^8.3.0",
