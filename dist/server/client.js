@@ -52,9 +52,8 @@ class Client extends events_1.EventEmitter {
     disconnect(code) {
         this.socket.close(code);
     }
-    parseAuthenticationConfig(config) {
-        if (!config)
-            config = {};
+    parseAuthenticationConfig(_config) {
+        const config = Object.assign({}, _config);
         if (typeof config.shouldSync === 'undefined')
             config.shouldSync = true;
         if (config.token)

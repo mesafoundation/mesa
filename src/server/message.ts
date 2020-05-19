@@ -50,9 +50,11 @@ export default class Message {
 		const json: IMessage = {
 			op: this.opcode,
 			d: this.data,
-			t: this.type,
-			s: this.sequence
+			t: this.type
 		}
+
+		if (this.sequence)
+			json.s = this.sequence
 
 		if (toJson)
 			return json

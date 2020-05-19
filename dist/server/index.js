@@ -66,9 +66,8 @@ class Server extends events_1.EventEmitter {
         this.wss = new ws_1.default.Server(options);
         this.wss.on('connection', (socket, req) => this.registerClient(socket, req));
     }
-    parseConfig(config) {
-        if (!config)
-            config = {};
+    parseConfig(_config) {
+        const config = Object.assign({}, _config);
         if (config.namespace)
             this.namespace = config.namespace;
         if (config.redis)

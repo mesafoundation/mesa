@@ -105,9 +105,8 @@ class Client extends EventEmitter {
 		this.ws.close(code, data)
 	}
 
-	private parseConfig(config?: IClientConfig) {
-		if (!config)
-			config = {}
+	private parseConfig(_config?: IClientConfig) {
+		const config = Object.assign({}, _config)
 
 		if (typeof config.autoConnect === 'undefined')
 			config.autoConnect = true
@@ -115,9 +114,8 @@ class Client extends EventEmitter {
 		return config
 	}
 
-	private parseAuthenticationConfig(config?: IClientAuthenticationConfig) {
-		if (!config)
-			config = {}
+	private parseAuthenticationConfig(_config?: IClientAuthenticationConfig) {
+		const config = Object.assign({}, _config)
 
 		if (typeof config.shouldSync === 'undefined')
 			config.shouldSync = true
