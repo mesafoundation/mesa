@@ -18,6 +18,7 @@ _**Mesa** — Robust, reliable WebSockets_
         * [Message Sync](#message-sync)
           * [Client Sync Options](#client-sync-options)
         * [Dispatch Events](#dispatch-events)
+        * [Portals](#portals)
     * [Client Side](#client-side)
         * [JavaScript](#javascript)
             * [Authentication](#authentication)
@@ -278,6 +279,50 @@ dispatcher.dispatch(new DispatchEvent('DISCONNECT_CLIENT'), ['0'])
 In the future we'll create an API for creating and handling custom dispatch events.
 
 *Note: in the future we plan to migrate from Dispatcher connecting via Redis Pub/Sub to directly connecting to Mesa. The Dispatcher API is early, so please keep this in mind while writing implementations*
+
+#### Portals
+Portals allow you to handle messages sent from Mesa clients to a detatched gateway server from anywhere in your codebase. Portals are especially useful in large, replicated environments.
+
+To use Portals, you'll need to import the `Portal` module from Mesa:
+```js
+const { Portal } = require('@cryb/mesa')
+// or using ES modules
+import { Portal } from '@cryb/mesa'
+```
+
+Then create a new Portal instance and pass in your Redis URI or config:
+```js
+const portal = new Portal('redis://localhost:6379')
+```
+
+We provide expansive configuration support for customising Portal to your needs. Here's a rundown of options we provide:
+```
+{
+  // Optional: namespace for Redis events. This should match the namespace on the Mesa server you're targetting if that Mesa server has a namespace
+  namespace?: string
+
+  // Optional: ensure all events are sent to this Portal instance. Defaults to false
+  listenToAllEvents?: booleam
+}
+```
+
+To supply this config, pass it into the Portal constructor as you would with any other configuration:
+```js
+const portal = new Portal('redis://localhost:6379', {
+  namespace: 'api'
+})
+```
+
+Once you have your Portal setup, you can listen to new messages using the `EventEmitter` API:
+```js
+portal.on('message', message => {
+  const { opcode, data, type } = message
+
+  console.log('Recieved', opcode, data, type)
+})
+```
+
+By default, messages sent to Mesa servers are only sent to a single Portal in order to ensure events are not handled in two different places. If you want to capture all events using a Portal, set `listenToAllEvents` to `true` in you Mesa config.
 
 ### Client Side
 We currently provide client libraries for Node-based JavaScript. For a browser-based client library, see [mesa-js-client](https://github.com/neoncloth/mesa-js-client)
