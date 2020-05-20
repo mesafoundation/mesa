@@ -1,78 +1,73 @@
+const http = require('http')
 const { default: Mesa, Message, Client } = require('../dist')
 
-let server,
-		client
+describe('server', () => {
+	describe('client', () => {
+		it('allows a client to connect', done => {
+			const port = 1000,
+						server = new Mesa({ port }),
+						client = new Client(`ws://localhost:${port}`)
 
-beforeAll(() => {
-	server = new Mesa({ port: 6969 })
-	client = new Client('ws://localhost:6969', { autoConnect: false })
-})
+			server.on('connection', () => server.wss.close(done))
+		})
 
-describe('server/client', () => {
-	test('can a client connect to a server', async () => {
-		const connected = jest.fn()
-		client.connect()
+		it('can recieve a message from a client', done => {
+			const port = 1001,
+						server = new Mesa({ port }),
+						client = new Client(`ws://localhost:${port}`),
+						message = new Message(0, { x: 1, y: 2 }, 'TEST')
 
-		await new Promise(resolve => {
 			client.on('connected', () => {
-				resolve()
-				connected()
+				client.send(message)
+			})
 
-				expect(connected).toHaveBeenCalled()
+			server.on('message', recievedMessage => {
+				expect(recievedMessage).toMatchObject(message)
+
+				server.wss.close(done)
 			})
 		})
 	})
 
-	test('can a client send a message', async () => {
-		const recieved = jest.fn()
+	describe('config', () => {
+		it('starts on a given port', done => {
+			const port = 2000,
+						server = new Mesa({ port }),
+						client = new Client(`ws://localhost:${port}`)
 
-		const sending = new Message(0, { x: 1 }, 'TEST')
-		client.send(sending)
+			server.on('connection', () => server.wss.close(done))
+		})
 
-		await new Promise(resolve => {
-			server.on('message', recieving => {
-				resolve()
-				recieved(recieving)
+		it('uses a pre-existing http server', done => {
+      const server = http.createServer()
 
-				expect(recieved).toHaveBeenCalledWith(sending)
-			})
+      server.listen(2001, () => {
+        const mesaServer = new Mesa({ server }),
+        			client = new WebSocket(`ws://localhost:${server.address().port}`)
+
+        mesaServer.on('connection', () => {
+        	mesaServer.wss.close()
+        	server.close(done)
+        })
+      })
 		})
 	})
-
-	// test('can a server send a message', async () => {
-	// 	const recieved = jest.fn()
-
-	// 	const sending = new Message(0, { x: 1 }, 'TEST')
-	// 	server.send(sending)
-
-	// 	await new Promise(resolve => {
-	// 		client.on('message', recieving => {
-	// 			resolve()
-	// 			recieved(recieving)
-
-	// 			expect(recieved).toHaveBeenCalledWith(sending)
-	// 		})
-	// 	})
-	// })
 })
 
-describe('serialization', () => {
-	test('does a message properly serialize to json', () => {
-		const message = new Message(0, {}, 'TEST'),
-					serialized = { op: 0, d: {}, t: 'TEST' }
+describe('message', () => {
+	describe('serialization', () => {
+		test('does a message properly serialize to json', () => {
+			const message = new Message(0, {}, 'TEST'),
+						serialized = { op: 0, d: {}, t: 'TEST' }
 
-		expect(message.serialize(true)).toStrictEqual(serialized)
+			expect(message.serialize(true)).toStrictEqual(serialized)
+		})
+
+		test('does a message properly serialize to a string', () => {
+			const message = new Message(0, {}, 'TEST'),
+						serialized = JSON.stringify({ op: 0, d: {}, t: 'TEST' })
+
+			expect(message.serialize(false)).toBe(serialized)
+		})
 	})
-
-	test('does a message properly serialize to a string', () => {
-		const message = new Message(0, {}, 'TEST'),
-					serialized = JSON.stringify({ op: 0, d: {}, t: 'TEST' })
-
-		expect(message.serialize(false)).toBe(serialized)
-	})
-})
-
-afterAll(() => {
-	// console.log(client.ws.readyState)
-	server.wss.close()
 })
