@@ -118,7 +118,7 @@ class Server extends EventEmitter {
 			return this._send(message, this.clients)
 
 		if (this.redis && _recipients && this.syncConfig.enabled) {
-			const namespace = this.clientNamespace('connected_clients'),
+			const namespace = this.getNamespace('connected_clients'),
 						onlineRecipients = [],
 						offlineRecipients = []
 
@@ -154,6 +154,23 @@ class Server extends EventEmitter {
 		}
 	}
 
+	public registerAuthentication(client: Client) {
+		this.sendInternalPortalMessage({
+			type: 'authentication',
+			clientId: client.id
+		})
+	}
+
+	public registerDisconnection(disconnectingClient: Client) {
+		const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId)
+		this.clients.splice(clientIndex, 1)
+
+		this.sendInternalPortalMessage({
+			type: 'disconnection',
+			clientId: disconnectingClient.id
+		})
+	}
+
 	public close() {
 		this.wss.close()
 	}
@@ -164,7 +181,7 @@ class Server extends EventEmitter {
 			message: _message.serialize(true) as IMessage
 		}
 
-		if(client.id)
+		if (client.id)
 			message.clientId = client.id
 
 		this.sendInternalPortalMessage(message)
@@ -172,18 +189,6 @@ class Server extends EventEmitter {
 
 	public pubSubNamespace() {
 		return this.getNamespace('ws')
-	}
-
-	private getNamespace(prefix: string) {
-		return this.namespace ? `${prefix}_${this.namespace}` : prefix
-	}
-
-	private portalPubSubNamespace() {
-		return this.getNamespace('portal')
-	}
-
-	private availablePortalsNamespace() {
-		return this.getNamespace('available_portals')
 	}
 
 	private setup(config: IServerConfig) {
@@ -258,7 +263,7 @@ class Server extends EventEmitter {
 
 			try {
 				json = JSON.parse(data)
-			} catch(error) {
+			} catch (error) {
 				return this.emit('error', error)
 			}
 
@@ -282,12 +287,12 @@ class Server extends EventEmitter {
 
 		let chosenPortal: string
 
-		if(this.portals.length === 1)
+		if (this.portals.length === 1)
 			chosenPortal = this.portals[0]
-		else if(this.portalConfig.distributeLoad) {
+		else if (this.portalConfig.distributeLoad) {
 			this.portalIndex += 1
 
-			if(this.portalIndex >= this.portals.length)
+			if (this.portalIndex >= this.portals.length)
 				this.portalIndex = 0
 
 			chosenPortal = this.portals[this.portalIndex]
@@ -308,7 +313,7 @@ class Server extends EventEmitter {
 	private handlePortalUpdate(update: IPortalUpdate) {
 		const { id, ready } = update
 
-		if(ready)
+		if (ready)
 			this.portals.push(id)
 		else {
 			const portalIndex = this.portals.indexOf(id)
@@ -330,23 +335,6 @@ class Server extends EventEmitter {
 		})
 	}
 
-	public registerAuthentication(client: Client) {
-		this.sendInternalPortalMessage({
-			type: 'authentication',
-			clientId: client.id
-		})
-	}
-
-	public registerDisconnection(disconnectingClient: Client) {
-		const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId)
-		this.clients.splice(clientIndex, 1)
-
-		this.sendInternalPortalMessage({
-			type: 'disconnection',
-			clientId: disconnectingClient.id
-		})
-	}
-
 	private handleInternalMessage(internalMessage: IInternalMessage) {
 		const { message: _message, recipients: _recipients } = internalMessage,
 					message = new Message(_message.op, _message.d, _message.t)
@@ -362,7 +350,7 @@ class Server extends EventEmitter {
 	}
 
 	private async handleUndeliverableMessage(message: Message, recipient: string) {
-		handleUndeliveredMessage(message, recipient, this.redis, this.clientNamespace('undelivered_messages'))
+		handleUndeliveredMessage(message, recipient, this.redis, this.getNamespace('undelivered_messages'))
 	}
 
 	private fetchClientConfig() {
@@ -385,8 +373,16 @@ class Server extends EventEmitter {
 		return config
 	}
 
-	private clientNamespace(prefix: string) {
+	private getNamespace(prefix: string) {
 		return this.namespace ? `${prefix}_${this.namespace}` : prefix
+	}
+
+	private portalPubSubNamespace() {
+		return this.getNamespace('portal')
+	}
+
+	private availablePortalsNamespace() {
+		return this.getNamespace('available_portals_pool')
 	}
 }
 

@@ -25,7 +25,7 @@ class Server extends events_1.EventEmitter {
         if (!this.redis && !_recipients)
             return this._send(message, this.clients);
         if (this.redis && _recipients && this.syncConfig.enabled) {
-            const namespace = this.clientNamespace('connected_clients'), onlineRecipients = [], offlineRecipients = [];
+            const namespace = this.getNamespace('connected_clients'), onlineRecipients = [], offlineRecipients = [];
             if (_recipients && this.syncConfig.enabled)
                 for (let i = 0; i < _recipients.length; i++) {
                     const recipient = _recipients[i], isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
@@ -50,6 +50,20 @@ class Server extends events_1.EventEmitter {
             this._send(message, recipients);
         }
     }
+    registerAuthentication(client) {
+        this.sendInternalPortalMessage({
+            type: 'authentication',
+            clientId: client.id
+        });
+    }
+    registerDisconnection(disconnectingClient) {
+        const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId);
+        this.clients.splice(clientIndex, 1);
+        this.sendInternalPortalMessage({
+            type: 'disconnection',
+            clientId: disconnectingClient.id
+        });
+    }
     close() {
         this.wss.close();
     }
@@ -64,15 +78,6 @@ class Server extends events_1.EventEmitter {
     }
     pubSubNamespace() {
         return this.getNamespace('ws');
-    }
-    getNamespace(prefix) {
-        return this.namespace ? `${prefix}_${this.namespace}` : prefix;
-    }
-    portalPubSubNamespace() {
-        return this.getNamespace('portal');
-    }
-    availablePortalsNamespace() {
-        return this.getNamespace('available_portals');
     }
     setup(config) {
         if (this.wss)
@@ -179,20 +184,6 @@ class Server extends events_1.EventEmitter {
             type: 'connection'
         });
     }
-    registerAuthentication(client) {
-        this.sendInternalPortalMessage({
-            type: 'authentication',
-            clientId: client.id
-        });
-    }
-    registerDisconnection(disconnectingClient) {
-        const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId);
-        this.clients.splice(clientIndex, 1);
-        this.sendInternalPortalMessage({
-            type: 'disconnection',
-            clientId: disconnectingClient.id
-        });
-    }
     handleInternalMessage(internalMessage) {
         const { message: _message, recipients: _recipients } = internalMessage, message = new message_1.default(_message.op, _message.d, _message.t);
         let recipients;
@@ -203,7 +194,7 @@ class Server extends events_1.EventEmitter {
         recipients.forEach(client => client.send(message, true));
     }
     async handleUndeliverableMessage(message, recipient) {
-        sync_until_1.handleUndeliveredMessage(message, recipient, this.redis, this.clientNamespace('undelivered_messages'));
+        sync_until_1.handleUndeliveredMessage(message, recipient, this.redis, this.getNamespace('undelivered_messages'));
     }
     fetchClientConfig() {
         const config = {}, { serverOptions, clientConfig, authenticationConfig } = this, rules = utils_1.parseRules({ serverOptions, clientConfig, authenticationConfig });
@@ -217,8 +208,14 @@ class Server extends events_1.EventEmitter {
             config.rules = rules;
         return config;
     }
-    clientNamespace(prefix) {
+    getNamespace(prefix) {
         return this.namespace ? `${prefix}_${this.namespace}` : prefix;
+    }
+    portalPubSubNamespace() {
+        return this.getNamespace('portal');
+    }
+    availablePortalsNamespace() {
+        return this.getNamespace('available_portals_pool');
     }
 }
 exports.default = Server;

@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const death_1 = __importDefault(require("death"));
 const events_1 = require("events");
 const message_1 = __importDefault(require("../server/message"));
-const uuid_util_1 = __importDefault(require("../utils/uuid.util"));
 const helpers_util_1 = require("../utils/helpers.util");
+const uuid_util_1 = __importDefault(require("../utils/uuid.util"));
 class Portal extends events_1.EventEmitter {
     constructor(redis, config) {
         super();
@@ -33,7 +33,7 @@ class Portal extends events_1.EventEmitter {
         this.setupCloseHandler(); // Setup the portal to be removed from the available_portals list on heat death
     }
     setupSubscriber() {
-        this.subscriber.on('message', async (channel, data) => {
+        this.subscriber.on('message', async (_, data) => {
             let json;
             try {
                 json = JSON.parse(data);
@@ -91,7 +91,7 @@ class Portal extends events_1.EventEmitter {
         return this.clientNamespace(`portal`);
     }
     availablePortalsNamespace() {
-        return this.clientNamespace('available_portals');
+        return this.clientNamespace('available_portals_pool');
     }
     log(...messages) {
         if (!this.config.verbose)

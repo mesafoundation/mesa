@@ -73,12 +73,11 @@ declare class Server extends EventEmitter {
     private portalIndex;
     constructor(config?: IServerConfig);
     send(message: Message, _recipients?: string[], excluding?: string[]): Promise<number | void>;
+    registerAuthentication(client: Client): void;
+    registerDisconnection(disconnectingClient: Client): void;
     close(): void;
     sendPortalableMessage(_message: Message, client: Client): void;
     pubSubNamespace(): string;
-    private getNamespace;
-    private portalPubSubNamespace;
-    private availablePortalsNamespace;
     private setup;
     private parseConfig;
     private _send;
@@ -87,11 +86,11 @@ declare class Server extends EventEmitter {
     private loadInitialState;
     private handlePortalUpdate;
     private registerConnection;
-    registerAuthentication(client: Client): void;
-    registerDisconnection(disconnectingClient: Client): void;
     private handleInternalMessage;
     private handleUndeliverableMessage;
     private fetchClientConfig;
-    private clientNamespace;
+    private getNamespace;
+    private portalPubSubNamespace;
+    private availablePortalsNamespace;
 }
 export default Server;

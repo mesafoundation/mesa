@@ -1,17 +1,18 @@
 import death from 'death'
-import Redis from 'ioredis'
 import { EventEmitter } from 'events'
+import Redis from 'ioredis'
 
 import Message from '../server/message'
 
 import { RedisConfig } from '../server'
 import { IMessage } from '../server/message'
 
-import generateUUID from '../utils/uuid.util'
 import { createRedisClient } from '../utils/helpers.util'
+import generateUUID from '../utils/uuid.util'
 
 import { IPortalConfig, IPortalInternalMessage, PortalInternalSocketType } from './defs'
 
+// tslint:disable-next-line: interface-name
 declare interface Portal extends EventEmitter {
 	on(event: 'connection', listener: (this: Portal) => void): this
 	on(event: 'authentication', listener: (this: Portal, clientId: string) => void): this
@@ -51,22 +52,22 @@ class Portal extends EventEmitter {
 	}
 
 	private setupSubscriber() {
-		this.subscriber.on('message', async (channel, data) => {
+		this.subscriber.on('message', async (_, data) => {
 			let json: IPortalInternalMessage
 
 			try {
 				json = JSON.parse(data)
-			} catch(error) {
+			} catch (error) {
 				return this.emit('error', error)
 			}
 
 			const { portalId } = json
-			if(portalId !== this.id && !this.config.reportAllEvents)
+			if (portalId !== this.id && !this.config.reportAllEvents)
 				return
 
 			const { type, clientId, message } = json
 
-			switch(type) {
+			switch (type) {
 				case 'connection':
 					return this.handleSocketUpdate(type)
 				case 'authentication':
@@ -125,11 +126,11 @@ class Portal extends EventEmitter {
 	}
 
 	private availablePortalsNamespace() {
-		return this.clientNamespace('available_portals')
+		return this.clientNamespace('available_portals_pool')
 	}
 
 	private log(...messages: string[]) {
-		if(!this.config.verbose)
+		if (!this.config.verbose)
 			return
 
 		console.log('[@cryb/mesa/portal]', ...messages)

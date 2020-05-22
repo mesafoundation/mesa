@@ -17,7 +17,7 @@ type PortalInternalMessageType = PortalInternalSocketType | 'message'
 
 export interface IPortalInternalMessage {
 	type: PortalInternalMessageType
-	portalId?: string // Added automagically
+	portalId?: string
 	clientId?: string
 
 	message?: IMessage
