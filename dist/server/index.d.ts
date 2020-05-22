@@ -58,7 +58,6 @@ declare interface Server extends EventEmitter {
 declare class Server extends EventEmitter {
     wss: WebSocket.Server;
     clients: Client[];
-    portals: string[];
     namespace: string;
     redis: Redis.Redis;
     publisher: Redis.Redis;
@@ -70,6 +69,7 @@ declare class Server extends EventEmitter {
     heartbeatConfig: IHeartbeatConfig;
     reconnectConfig: IReconnectConfig;
     authenticationConfig: IAuthenticationConfig;
+    private portals;
     private portalIndex;
     constructor(config?: IServerConfig);
     send(message: Message, _recipients?: string[], excluding?: string[]): Promise<number | void>;

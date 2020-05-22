@@ -83,7 +83,6 @@ declare interface Server extends EventEmitter {
 class Server extends EventEmitter {
 	public wss: WebSocket.Server
 	public clients: Client[] = []
-	public portals: string[] = []
 
 	public namespace: string
 
@@ -100,6 +99,7 @@ class Server extends EventEmitter {
 	public reconnectConfig: IReconnectConfig
 	public authenticationConfig: IAuthenticationConfig
 
+	private portals: string[] = []
 	private portalIndex: number = 0
 
 	constructor(config?: IServerConfig) {
