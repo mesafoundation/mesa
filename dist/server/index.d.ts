@@ -53,6 +53,7 @@ declare interface Server extends EventEmitter {
 declare class Server extends EventEmitter {
     wss: WebSocket.Server;
     clients: Client[];
+    portals: string[];
     namespace: string;
     redis: Redis.Redis;
     publisher: Redis.Redis;
@@ -65,13 +66,20 @@ declare class Server extends EventEmitter {
     authenticationConfig: IAuthenticationConfig;
     constructor(config?: IServerConfig);
     send(message: Message, _recipients?: string[], excluding?: string[]): Promise<number | void>;
-    registerDisconnection(disconnectingClient: Client): void;
+    sendPortalableMessage(message: Message, client: Client): void;
     pubSubNamespace(): string;
+    private getNamespace;
+    private portalPubSubNamespace;
+    private availablePortalsNamespace;
     private setup;
     private parseConfig;
     private _send;
     private setupRedis;
-    private registerClient;
+    private sendInternalPortalMessage;
+    private loadInitialState;
+    private handlePortalUpdate;
+    private registerConnection;
+    registerDisconnection(disconnectingClient: Client): void;
     private handleInternalMessage;
     private handleUndeliverableMessage;
     private fetchClientConfig;

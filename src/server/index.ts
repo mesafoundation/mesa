@@ -8,6 +8,8 @@ import WebSocket, { ServerOptions as WSOptions } from 'ws'
 import Client, { IClientConnectionConfig, Rule } from './client'
 import Message, { IInternalMessage, IMessage } from './message'
 
+import { IPortalUpdate, IPortalInternalMessage } from '../portal/defs'
+
 import { parseConfig, parseRules } from '../utils'
 import { createRedisClient } from '../utils/helpers.util'
 import { handleUndeliveredMessage } from '../utils/sync.until'
@@ -75,6 +77,7 @@ declare interface Server extends EventEmitter {
 class Server extends EventEmitter {
 	public wss: WebSocket.Server
 	public clients: Client[] = []
+	public portals: string[] = []
 
 	public namespace: string
 
@@ -142,14 +145,24 @@ class Server extends EventEmitter {
 		}
 	}
 
-	public registerDisconnection(disconnectingClient: Client) {
-		const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId)
-
-		this.clients.splice(clientIndex, 1)
+	public sendPortalableMessage(message: Message, client: Client) {
+		this.sendInternalPortalMessage({ type: 'message', message: message.serialize(true) as IMessage })
 	}
 
 	public pubSubNamespace() {
-		return this.namespace ? `ws_${this.namespace}` : 'ws'
+		return this.getNamespace('ws')
+	}
+
+	private getNamespace(prefix: string) {
+		return this.namespace ? `${prefix}_${this.namespace}` : prefix
+	}
+
+	private portalPubSubNamespace() {
+		return this.getNamespace('portal')
+	}
+
+	private availablePortalsNamespace() {
+		return this.getNamespace('available_portals')
 	}
 
 	private setup(config: IServerConfig) {
@@ -164,7 +177,7 @@ class Server extends EventEmitter {
 			options.port = config.port || 4000
 
 		this.wss = new WebSocket.Server(options)
-		this.wss.on('connection', (socket, req) => this.registerClient(socket, req))
+		this.wss.on('connection', (socket, req) => this.registerConnection(socket, req))
 	}
 
 	private parseConfig(_config?: IServerConfig) {
@@ -202,6 +215,7 @@ class Server extends EventEmitter {
 		recipients.forEach(recipient => recipient.send(message))
 	}
 
+	// Setup
 	private setupRedis(redisConfig: RedisConfig) {
 		const redis: Redis.Redis = createRedisClient(redisConfig),
 					publisher: Redis.Redis = createRedisClient(redisConfig),
@@ -211,22 +225,74 @@ class Server extends EventEmitter {
 		this.publisher = publisher
 		this.subscriber = subscriber
 
-		subscriber.on('message', async (_, data) => {
+		this.loadInitialState()
+
+		const pubSubNamespace = this.pubSubNamespace(),
+					availablePortalsNamespace = this.availablePortalsNamespace()
+
+		subscriber.on('message', async (channel, data) => {
+			let json
+
 			try {
-				this.handleInternalMessage(JSON.parse(data))
-			} catch (error) {
-				this.emit('error', error)
+				json = JSON.parse(data)
+			} catch(error) {
+				return this.emit('error', error)
 			}
-		}).subscribe(this.pubSubNamespace())
+
+			switch (channel) {
+				case pubSubNamespace:
+					return this.handleInternalMessage(json)
+				case availablePortalsNamespace:
+					return this.handlePortalUpdate(json)
+			}
+		}).subscribe(pubSubNamespace, availablePortalsNamespace)
 	}
 
-	private registerClient(socket: WebSocket, req: http.IncomingMessage) {
+	// Portal
+	private sendInternalPortalMessage(internalMessage: IPortalInternalMessage) {
+		if (!this.redis)
+			return
+		else if(this.portals.length === 0)
+			return
+
+		const chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)]
+		this.publisher.publish(this.getNamespace(`portal_${chosenPortal}`), JSON.stringify(internalMessage))
+	}
+
+	// State Management
+	private async loadInitialState() {
+		this.portals = await this.redis.smembers(this.availablePortalsNamespace())
+	}
+
+	private handlePortalUpdate(update: IPortalUpdate) {
+		const { id, ready } = update
+
+		if(ready)
+			this.portals.push(id)
+		else {
+			const portalIndex = this.portals.indexOf(id)
+
+			this.portals.splice(portalIndex, 1)
+		}
+	}
+
+	// State Updates
+	private registerConnection(socket: WebSocket, req: http.IncomingMessage) {
 		const client = new Client(socket, this, { req })
 
 		client.send(new Message(10, this.fetchClientConfig()))
 
 		this.clients.push(client)
 		this.emit('connection', client)
+		this.sendInternalPortalMessage({ type: 'connection' })
+	}
+
+	public registerDisconnection(disconnectingClient: Client) {
+		const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId)
+
+		this.clients.splice(clientIndex, 1)
+
+		this.sendInternalPortalMessage({ type: 'disconnection' })
 	}
 
 	private handleInternalMessage(internalMessage: IInternalMessage) {

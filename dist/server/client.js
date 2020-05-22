@@ -107,6 +107,7 @@ class Client extends events_1.EventEmitter {
             return this.heartbeatBuffer.push(message);
         this.emit('message', message);
         this.server.emit('message', message);
+        this.server.sendPortalableMessage(message, this);
         if (this.server.serverOptions.storeMessages)
             this.messages.recieved.push(message);
     }

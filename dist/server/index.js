@@ -14,6 +14,7 @@ class Server extends events_1.EventEmitter {
     constructor(config) {
         super();
         this.clients = [];
+        this.portals = [];
         config = this.parseConfig(config);
         this.setup(config);
     }
@@ -48,12 +49,20 @@ class Server extends events_1.EventEmitter {
             this._send(message, recipients);
         }
     }
-    registerDisconnection(disconnectingClient) {
-        const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId);
-        this.clients.splice(clientIndex, 1);
+    sendPortalableMessage(message, client) {
+        this.sendInternalPortalMessage({ type: 'message', message: message.serialize(true) });
     }
     pubSubNamespace() {
-        return this.namespace ? `ws_${this.namespace}` : 'ws';
+        return this.getNamespace('ws');
+    }
+    getNamespace(prefix) {
+        return this.namespace ? `${prefix}_${this.namespace}` : prefix;
+    }
+    portalPubSubNamespace() {
+        return this.getNamespace('portal');
+    }
+    availablePortalsNamespace() {
+        return this.getNamespace('available_portals');
     }
     setup(config) {
         if (this.wss)
@@ -64,7 +73,7 @@ class Server extends events_1.EventEmitter {
         else
             options.port = config.port || 4000;
         this.wss = new ws_1.default.Server(options);
-        this.wss.on('connection', (socket, req) => this.registerClient(socket, req));
+        this.wss.on('connection', (socket, req) => this.registerConnection(socket, req));
     }
     parseConfig(_config) {
         const config = Object.assign({}, _config);
@@ -91,25 +100,64 @@ class Server extends events_1.EventEmitter {
             return;
         recipients.forEach(recipient => recipient.send(message));
     }
+    // Setup
     setupRedis(redisConfig) {
         const redis = helpers_util_1.createRedisClient(redisConfig), publisher = helpers_util_1.createRedisClient(redisConfig), subscriber = helpers_util_1.createRedisClient(redisConfig);
         this.redis = redis;
         this.publisher = publisher;
         this.subscriber = subscriber;
-        subscriber.on('message', async (_, data) => {
+        this.loadInitialState();
+        const pubSubNamespace = this.pubSubNamespace(), availablePortalsNamespace = this.availablePortalsNamespace();
+        subscriber.on('message', async (channel, data) => {
+            let json;
             try {
-                this.handleInternalMessage(JSON.parse(data));
+                json = JSON.parse(data);
             }
             catch (error) {
-                this.emit('error', error);
+                return this.emit('error', error);
             }
-        }).subscribe(this.pubSubNamespace());
+            switch (channel) {
+                case pubSubNamespace:
+                    return this.handleInternalMessage(json);
+                case availablePortalsNamespace:
+                    return this.handlePortalUpdate(json);
+            }
+        }).subscribe(pubSubNamespace, availablePortalsNamespace);
     }
-    registerClient(socket, req) {
+    // Portal
+    sendInternalPortalMessage(internalMessage) {
+        if (!this.redis)
+            return;
+        else if (this.portals.length === 0)
+            return;
+        const chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)];
+        this.publisher.publish(this.getNamespace(`portal_${chosenPortal}`), JSON.stringify(internalMessage));
+    }
+    // State Management
+    async loadInitialState() {
+        this.portals = await this.redis.smembers(this.availablePortalsNamespace());
+    }
+    handlePortalUpdate(update) {
+        const { id, ready } = update;
+        if (ready)
+            this.portals.push(id);
+        else {
+            const portalIndex = this.portals.indexOf(id);
+            this.portals.splice(portalIndex, 1);
+        }
+    }
+    // State Updates
+    registerConnection(socket, req) {
         const client = new client_1.default(socket, this, { req });
         client.send(new message_1.default(10, this.fetchClientConfig()));
         this.clients.push(client);
         this.emit('connection', client);
+        this.sendInternalPortalMessage({ type: 'connection' });
+    }
+    registerDisconnection(disconnectingClient) {
+        const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId);
+        this.clients.splice(clientIndex, 1);
+        this.sendInternalPortalMessage({ type: 'disconnection' });
     }
     handleInternalMessage(internalMessage) {
         const { message: _message, recipients: _recipients } = internalMessage, message = new message_1.default(_message.op, _message.d, _message.t);
