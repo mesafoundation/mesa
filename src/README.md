@@ -349,6 +349,8 @@ const portal = new Portal('redis://localhost:6379', {
 })
 ```
 
+*Note: Due to the way Portals and Mesa are designed, Portals will halt your program from stopping to quickly remove itself from the pool of available portals. It will allow your program to exit as normal.*
+
 Once you have your Portal setup, you can listen to new messages using the `EventEmitter` API:
 ```js
 portal.on('connection', () => {
