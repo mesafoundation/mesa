@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleUndeliveredMessage = async (message, recipient, client, namespace) => {
-    if (!recipient)
+    if (!message.options.sync)
+        return;
+    else if (!recipient)
         return;
     else if (typeof recipient === 'undefined')
         return;

@@ -33,7 +33,7 @@ class Server extends events_1.EventEmitter {
                 }
             if (onlineRecipients.length > 0)
                 this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
-                    message: message.serialize(true),
+                    message: message.serialize(true, { sentByServer: true, sentInternally: true }),
                     recipients: onlineRecipients
                 }));
             if (offlineRecipients.length > 0)
@@ -42,7 +42,7 @@ class Server extends events_1.EventEmitter {
         }
         if (this.redis)
             return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
-                message: message.serialize(true),
+                message: message.serialize(true, { sentByServer: true, sentInternally: true }),
                 recipients: _recipients || ['*']
             }));
         else {
@@ -70,7 +70,7 @@ class Server extends events_1.EventEmitter {
     sendPortalableMessage(_message, client) {
         const message = {
             type: 'message',
-            message: _message.serialize(true)
+            message: _message.serialize(true, { sentByServer: true })
         };
         if (client.id)
             message.clientId = client.id;

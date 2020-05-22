@@ -61,7 +61,8 @@ class Portal extends events_1.EventEmitter {
         this.emit(type, clientId);
     }
     handleMessage(_message, clientId) {
-        const message = new message_1.default(_message.op, _message.d, _message.t, { sequence: _message.s });
+        const message = new message_1.default(_message.op, _message.d, _message.t, _message.o);
+        message.sequence = _message.s;
         this.emit('message', message, clientId);
     }
     registerPortal() {

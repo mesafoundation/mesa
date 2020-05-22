@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import WebSocket from 'ws'
 
 import { IClientConnectionConfig, Rule } from '../server/client'
-import Message, { IMessage, IMessages } from '../server/message'
+import Message, { IMessage, IMessageOptions, IMessages } from '../server/message'
 import { getVersion } from '../utils/getters.util'
 
 interface IClientConfig {
@@ -150,7 +150,10 @@ class Client extends EventEmitter {
 		}
 
 		const { op, d, t, s } = json,
-				message = new Message(op, d, t, s ? { sequence: s } : null)
+				message = new Message(op, d, t)
+
+		if (s)
+			message.sequence = s
 
 		switch (message.opcode) {
 			case 1:

@@ -98,7 +98,7 @@ class Client extends EventEmitter {
 			this.messages.sent.push(message)
 
 		if (sendDirectly)
-			return this.socket.send(message.serialize())
+			return this.socket.send(message.serialize(false, { sentByServer: true }))
 
 		this.server.send(message, [this.id])
 	}
@@ -250,9 +250,13 @@ class Client extends EventEmitter {
 				console.error(error)
 			}
 
-		const messages = undeliveredMessages.map((message, sequence) =>
-			new Message(message.op, message.d, message.t, { sequence })
-		)
+		const messages = undeliveredMessages.map(message =>
+			new Message(message.op, message.d, message.t)
+		).map((message, sequence) => {
+			message.sequence = sequence + 1
+
+			return message
+		})
 
 		let interval: NodeJS.Timeout,
 				messageIndex = 0

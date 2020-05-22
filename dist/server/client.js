@@ -38,7 +38,7 @@ class Client extends events_1.EventEmitter {
         if (this.server.serverOptions.storeMessages)
             this.messages.sent.push(message);
         if (sendDirectly)
-            return this.socket.send(message.serialize());
+            return this.socket.send(message.serialize(false, { sentByServer: true }));
         this.server.send(message, [this.id]);
     }
     authenticate(callback) {
@@ -154,7 +154,10 @@ class Client extends events_1.EventEmitter {
             catch (error) {
                 console.error(error);
             }
-        const messages = undeliveredMessages.map((message, sequence) => new message_1.default(message.op, message.d, message.t, { sequence }));
+        const messages = undeliveredMessages.map(message => new message_1.default(message.op, message.d, message.t)).map((message, sequence) => {
+            message.sequence = sequence + 1;
+            return message;
+        });
         let interval, messageIndex = 0;
         interval = setInterval(() => {
             const message = messages[messageIndex];

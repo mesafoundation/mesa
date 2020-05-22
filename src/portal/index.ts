@@ -85,7 +85,8 @@ class Portal extends EventEmitter {
 	}
 
 	private handleMessage(_message: IMessage, clientId?: string) {
-		const message = new Message(_message.op, _message.d, _message.t, { sequence: _message.s })
+		const message = new Message(_message.op, _message.d, _message.t, _message.o)
+		message.sequence = _message.s
 
 		this.emit('message', message, clientId)
 	}

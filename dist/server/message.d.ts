@@ -8,27 +8,33 @@ export interface IMessages {
     sent: Message[];
     recieved: Message[];
 }
+export interface IMessageOptions {
+    sync: boolean;
+}
 export interface IMessage {
     op: Opcode;
     d: Data;
     t?: Type;
     s?: Sequence;
-}
-export interface IMessageOptions {
-    to?: string;
-    sequence?: number;
+    o?: IMessageOptions;
 }
 export interface IInternalMessage {
     message: IMessage;
     recipients: string[];
 }
+interface IMessageSerializationConfig {
+    sentByServer?: boolean;
+    sentInternally?: boolean;
+}
 export default class Message {
     opcode: Opcode;
     data: Data;
     type: Type;
-    sequence: Sequence;
+    sequence?: Sequence;
     options: IMessageOptions;
     constructor(opcode: Opcode, data: Data, type?: Type, options?: IMessageOptions);
-    serialize(toJson?: boolean): string | IMessage;
+    serialize(toJson?: boolean, _config?: IMessageSerializationConfig): string | IMessage;
+    private parseOptions;
+    private parseSerializationConfig;
 }
 export {};

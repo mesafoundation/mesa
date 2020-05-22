@@ -8,7 +8,7 @@ import WebSocket, { ServerOptions as WSOptions } from 'ws'
 import Client, { IClientConnectionConfig, Rule } from './client'
 import Message, { IInternalMessage, IMessage } from './message'
 
-import { IPortalUpdate, IPortalInternalMessage } from '../portal/defs'
+import { IPortalInternalMessage, IPortalUpdate } from '../portal/defs'
 
 import { parseConfig, parseRules } from '../utils'
 import { createRedisClient } from '../utils/helpers.util'
@@ -132,7 +132,7 @@ class Server extends EventEmitter {
 
 			if (onlineRecipients.length > 0)
 				this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
-					message: message.serialize(true),
+					message: message.serialize(true, { sentByServer: true, sentInternally: true }),
 					recipients: onlineRecipients
 				} as IInternalMessage))
 
@@ -144,7 +144,7 @@ class Server extends EventEmitter {
 
 		if (this.redis)
 			return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
-				message: message.serialize(true),
+				message: message.serialize(true, { sentByServer: true, sentInternally: true }),
 				recipients: _recipients || ['*']
 			} as IInternalMessage))
 		else {
@@ -178,7 +178,7 @@ class Server extends EventEmitter {
 	public sendPortalableMessage(_message: Message, client: Client) {
 		const message: IPortalInternalMessage = {
 			type: 'message',
-			message: _message.serialize(true) as IMessage
+			message: _message.serialize(true, { sentByServer: true }) as IMessage
 		}
 
 		if (client.id)

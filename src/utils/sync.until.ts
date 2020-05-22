@@ -9,7 +9,9 @@ export const handleUndeliveredMessage = async (
 	client: Redis,
 	namespace: string
 ) => {
-	if (!recipient)
+	if (!message.options.sync)
+		return
+	else if (!recipient)
 		return
 	else if (typeof recipient === 'undefined')
 		return
