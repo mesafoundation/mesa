@@ -15,6 +15,7 @@ class Server extends events_1.EventEmitter {
         super();
         this.clients = [];
         this.portals = [];
+        this.portalIndex = 0;
         config = this.parseConfig(config);
         this.setup(config);
     }
@@ -49,8 +50,17 @@ class Server extends events_1.EventEmitter {
             this._send(message, recipients);
         }
     }
-    sendPortalableMessage(message, client) {
-        this.sendInternalPortalMessage({ type: 'message', message: message.serialize(true) });
+    close() {
+        this.wss.close();
+    }
+    sendPortalableMessage(_message, client) {
+        const message = {
+            type: 'message',
+            message: _message.serialize(true)
+        };
+        if (client.id)
+            message.clientId = client.id;
+        this.sendInternalPortalMessage(message);
     }
     pubSubNamespace() {
         return this.getNamespace('ws');
@@ -86,6 +96,7 @@ class Server extends events_1.EventEmitter {
         this.syncConfig = config.sync || { enabled: false };
         this.heartbeatConfig = config.heartbeat || { enabled: false };
         this.reconnectConfig = config.reconnect || { enabled: false };
+        this.portalConfig = utils_1.parseConfig(config.portal, ['enabled', 'distributeLoad'], [false, true]);
         this.authenticationConfig = utils_1.parseConfig(config.authentication, ['timeout', 'required', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, false, true, true, true]);
         if (this.syncConfig && this.syncConfig.enabled && !this.authenticationConfig.storeConnectedUsers)
             console.warn('Mesa requires config.authentication.storeConnectedUsers to be true for message sync to be enabled');
@@ -126,12 +137,24 @@ class Server extends events_1.EventEmitter {
     }
     // Portal
     sendInternalPortalMessage(internalMessage) {
-        if (!this.redis)
+        if (!this.portalConfig.enabled)
             return;
+        else if (!this.redis)
+            return console.log('[@cryb/mesa] Redis needs to be enabled for Portals to work. Enable Redis in your Mesa server config');
         else if (this.portals.length === 0)
             return;
-        const chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)];
-        this.publisher.publish(this.getNamespace(`portal_${chosenPortal}`), JSON.stringify(internalMessage));
+        let chosenPortal;
+        if (this.portals.length === 1)
+            chosenPortal = this.portals[0];
+        else if (this.portalConfig.distributeLoad) {
+            this.portalIndex += 1;
+            if (this.portalIndex >= this.portals.length)
+                this.portalIndex = 0;
+            chosenPortal = this.portals[this.portalIndex];
+        }
+        else
+            chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)];
+        this.publisher.publish(this.portalPubSubNamespace(), JSON.stringify(Object.assign(Object.assign({}, internalMessage), { portalId: chosenPortal })));
     }
     // State Management
     async loadInitialState() {
@@ -149,15 +172,26 @@ class Server extends events_1.EventEmitter {
     // State Updates
     registerConnection(socket, req) {
         const client = new client_1.default(socket, this, { req });
-        client.send(new message_1.default(10, this.fetchClientConfig()));
+        client.send(new message_1.default(10, this.fetchClientConfig()), true);
         this.clients.push(client);
         this.emit('connection', client);
-        this.sendInternalPortalMessage({ type: 'connection' });
+        this.sendInternalPortalMessage({
+            type: 'connection'
+        });
+    }
+    registerAuthentication(client) {
+        this.sendInternalPortalMessage({
+            type: 'authentication',
+            clientId: client.id
+        });
     }
     registerDisconnection(disconnectingClient) {
         const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId);
         this.clients.splice(clientIndex, 1);
-        this.sendInternalPortalMessage({ type: 'disconnection' });
+        this.sendInternalPortalMessage({
+            type: 'disconnection',
+            clientId: disconnectingClient.id
+        });
     }
     handleInternalMessage(internalMessage) {
         const { message: _message, recipients: _recipients } = internalMessage, message = new message_1.default(_message.op, _message.d, _message.t);

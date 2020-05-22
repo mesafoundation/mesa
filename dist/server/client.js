@@ -133,6 +133,7 @@ class Client extends events_1.EventEmitter {
         if (!this.authenticated)
             this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}));
         this.authenticated = true;
+        this.server.registerAuthentication(this);
     }
     registerDisconnection(code, reason) {
         if (this.heartbeatInterval)

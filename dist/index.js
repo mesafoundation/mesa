@@ -10,8 +10,6 @@ exports.Message = message_1.default;
 // Portal
 var portal_1 = require("./portal");
 exports.Portal = portal_1.default;
-var message_2 = require("./portal/message");
-exports.PortalMessage = message_2.default;
 // Dispatcher
 var dispatcher_1 = require("./dispatcher");
 exports.Dispatcher = dispatcher_1.default;

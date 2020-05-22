@@ -1,12 +1,13 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
-import PortalMessage from './message';
+import Message from '../server/message';
 import { RedisConfig } from '../server';
 import { IPortalConfig } from './defs';
 declare interface Portal extends EventEmitter {
-    on(event: 'connection', listener: (this: Portal, clientId?: string) => void): this;
+    on(event: 'connection', listener: (this: Portal) => void): this;
+    on(event: 'authentication', listener: (this: Portal, clientId: string) => void): this;
     on(event: 'disconnection', listener: (this: Portal, clientId?: string) => void): this;
-    on(event: 'message', listener: (this: Portal, message: PortalMessage) => void): this;
+    on(event: 'message', listener: (this: Portal, message: Message, clientId?: string) => void): this;
 }
 declare class Portal extends EventEmitter {
     id: string;
@@ -25,6 +26,7 @@ declare class Portal extends EventEmitter {
     private clientNamespace;
     private portalPubSubNamespace;
     private availablePortalsNamespace;
+    private log;
     private parseConfig;
 }
 export default Portal;

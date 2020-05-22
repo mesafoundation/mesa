@@ -92,7 +92,7 @@ import Mesa from '@cryb/mesa'
 
 To create a Mesa server, simply write:
 ```js
-const server = new Mesa({ port: 4000 })
+const mesa = new Mesa({ port: 4000 })
 ```
 
 We provide expansive configuration support for customising Mesa to your needs. See [Configuration](#configuration) for options.
@@ -270,7 +270,23 @@ Now that a Dispatcher instance has been created, use it to emit events to authen
 dispatcher.dispatch(new Message(0, { status: 'online' }, 'STATUS_UPDATE'), ['0', '1'])
 ```
 
-We also support dispatch events which are events not sent to clients but are used to handle client connections.
+We also allow for a third option that filters out any client ids from the recipients. Here's an example:
+```js
+room.on('message', (content, author) => {
+  // Supplying the third array will not send the message to the author of the message.
+  // This is useful when using Mesa in conjunction with a REST API where state has already been updates for the author
+  dispatcher.dispatch(new Message(0, { content, author }, 'NEW_MESSAGE'), room.members, [author])
+})
+```
+
+If you want to dispatch a message to all connected clients, supply a single asterisk in the recipient array:
+```js
+dispatcher.dispatch(new Message(0, { alert: true, content: 'Hello World' }, 'GLOBAL_ALERT'), ['*'])
+```
+
+*Note: the excluding option passed in as the third element will not work with global dispatch messages*
+
+<!-- We also support dispatch events which are events not sent to clients but are used to handle client connections.
 ```js
 // This disconnects an authenticated client with the id of 0.
 dispatcher.dispatch(new DispatchEvent('DISCONNECT_CLIENT'), ['0'])
@@ -278,10 +294,25 @@ dispatcher.dispatch(new DispatchEvent('DISCONNECT_CLIENT'), ['0'])
 
 In the future we'll create an API for creating and handling custom dispatch events.
 
-*Note: in the future we plan to migrate from Dispatcher connecting via Redis Pub/Sub to directly connecting to Mesa. The Dispatcher API is early, so please keep this in mind while writing implementations*
+*Note: in the future we plan to migrate from Dispatcher connecting via Redis Pub/Sub to directly connecting to Mesa. The Dispatcher API is early, so please keep this in mind while writing implementations* -->
 
 #### Portals
 Portals allow you to handle messages sent from Mesa clients to a detatched gateway server from anywhere in your codebase. Portals are especially useful in large, replicated environments.
+
+First, enable Portals in your Mesa server config:
+```js
+const mesa = new Mesa({
+  port: 4000,
+
+  portal: {
+    enabled: true
+  }
+})
+```
+
+We also supply an option called `MesaConfig.portal.distributeLoad`. This option is enabled by default and will send messages to Portal instances in order. Disabling this option will choose a random Portal to handle your message.
+
+There are other configuration options on the `MesaConfig.portal` object. For a full rundown, see [Configuration](#configuration).
 
 To use Portals, you'll need to import the `Portal` module from Mesa:
 ```js
@@ -300,29 +331,77 @@ We provide expansive configuration support for customising Portal to your needs.
 {
   // Optional: namespace for Redis events. This should match the namespace on the Mesa server you're targetting if that Mesa server has a namespace
   namespace?: string
+  // Optional: log Portal-related events on startup and closure. Defaults to false
+  verbose?: boolean
 
   // Optional: ensure all events are sent to this Portal instance. Defaults to false
-  listenToAllEvents?: booleam
+  reportAllEvents?: boolean
 }
 ```
 
 To supply this config, pass it into the Portal constructor as you would with any other configuration:
 ```js
 const portal = new Portal('redis://localhost:6379', {
-  namespace: 'api'
+  namespace: 'api',
+  verbose: true,
+
+  reportAllEvents: false
 })
 ```
 
 Once you have your Portal setup, you can listen to new messages using the `EventEmitter` API:
 ```js
+portal.on('connection', () => {
+  console.log('Client connected')
+})
+
+portal.on('authentication', clientId => {
+  console.log('Client authenticated with id', clientId)
+})
+
 portal.on('message', message => {
   const { opcode, data, type } = message
 
   console.log('Recieved', opcode, data, type)
 })
+
+portal.on('disconnection', clientId => {
+  if (!clientId)
+    return console.log('Client disconnected')
+
+  console.log('Authenticated client with id', clientId, 'disconnected')
+})
 ```
 
-By default, messages sent to Mesa servers are only sent to a single Portal in order to ensure events are not handled in two different places. If you want to capture all events using a Portal, set `listenToAllEvents` to `true` in you Mesa config.
+By default, messages sent to Mesa servers are only sent to a single Portal in order to ensure events are not handled in two different places. If you want to capture all events using a Portal, set `reportAllEvents` to `true` in you Portal config.
+
+*Note: Unless you are using `reportAllEvents` or have a single Portal instance running, you should never update application state using Portals. There is no guarentee a single Portal will recieve the same `connection`, `authentication`, `message`, and `disconnection` events for the same client. You should use Portals to forward messages to clients or update an existing database.*
+
+An example of a Chat application handling events using Portals would look something like this:
+```js
+import { Portal, Dispatcher, Message } from '@cryb/portal'
+import { setStatus, fetchRoomByMemberId }  from './chat'
+
+const namespace = 'chat',
+      redisUri = 'redis://localhost:6379',
+      portal = new Portal(redisUri, { namespace }),
+      dispatcher = new Dispatcher(redisUri, { namespace })
+
+// We recommend you update client status on portal.authentication and not portal.connected
+portal.on('authentication', clientId => {
+  setStatus('online', clientId)
+})
+
+portal.on('message', message => {
+  const { members } = fetchRoomByMemberId(message.clientId)
+
+  dispatcher.dispatch(new Message(0, { content: message.content }, 'NEW_MESSAGE'), members, message.clientId)
+})
+
+portal.on('disconnection', clientId => {
+  setStatus('offline', clientId)
+})
+```
 
 ### Client Side
 We currently provide client libraries for Node-based JavaScript. For a browser-based client library, see [mesa-js-client](https://github.com/neoncloth/mesa-js-client)

@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const death_1 = __importDefault(require("death"));
 const events_1 = require("events");
-const message_1 = __importDefault(require("./message"));
+const message_1 = __importDefault(require("../server/message"));
 const uuid_util_1 = __importDefault(require("../utils/uuid.util"));
 const helpers_util_1 = require("../utils/helpers.util");
 class Portal extends events_1.EventEmitter {
@@ -14,6 +14,10 @@ class Portal extends events_1.EventEmitter {
         this.parseConfig = (config) => {
             if (!config)
                 config = {};
+            if (typeof config.reportAllEvents === 'undefined')
+                config.reportAllEvents = false;
+            if (typeof config.verbose === 'undefined')
+                config.verbose = false;
             return config;
         };
         this.redis = helpers_util_1.createRedisClient(redis);
@@ -37,32 +41,38 @@ class Portal extends events_1.EventEmitter {
             catch (error) {
                 return this.emit('error', error);
             }
-            const { update, message, type } = json;
+            const { portalId } = json;
+            if (portalId !== this.id && !this.config.reportAllEvents)
+                return;
+            const { type, clientId, message } = json;
             switch (type) {
                 case 'connection':
-                    return this.handleSocketUpdate(update);
+                    return this.handleSocketUpdate(type);
+                case 'authentication':
+                    return this.handleSocketUpdate(type, clientId);
                 case 'message':
-                    return this.handleMessage(message);
+                    return this.handleMessage(message, clientId);
                 case 'disconnection':
-                    return this.handleSocketUpdate(update);
+                    return this.handleSocketUpdate(type, clientId);
             }
         }).subscribe(this.portalPubSubNamespace());
     }
-    handleSocketUpdate(update) {
-        const { id, type } = update;
-        this.emit(type, id);
+    handleSocketUpdate(type, clientId) {
+        this.emit(type, clientId);
     }
-    handleMessage(_message) {
+    handleMessage(_message, clientId) {
         const message = new message_1.default(_message.op, _message.d, _message.t, { sequence: _message.s });
-        this.emit('message', message);
+        this.emit('message', message, clientId);
     }
     registerPortal() {
+        this.log('publishing portal id', this.id);
         this.publishReadyState(true);
         this.redis.sadd(this.availablePortalsNamespace(), this.id);
+        this.log('published! ready to recieve updates on namespace', this.config.namespace);
     }
     setupCloseHandler() {
         death_1.default((signal, err) => {
-            console.log("[cryb/mesa/portal] shutting down...");
+            this.log('shutting down...');
             this.publishReadyState(false);
             this.redis.srem(this.availablePortalsNamespace(), this.id);
             process.exit(0);
@@ -78,10 +88,15 @@ class Portal extends events_1.EventEmitter {
         return this.config.namespace ? `${prefix}_${this.config.namespace}` : prefix;
     }
     portalPubSubNamespace() {
-        return this.clientNamespace(`portal_${this.id}`);
+        return this.clientNamespace(`portal`);
     }
     availablePortalsNamespace() {
         return this.clientNamespace('available_portals');
+    }
+    log(...messages) {
+        if (!this.config.verbose)
+            return;
+        console.log('[@cryb/mesa/portal]', ...messages);
     }
 }
 exports.default = Portal;

@@ -2,7 +2,7 @@ import death from 'death'
 import Redis from 'ioredis'
 import { EventEmitter } from 'events'
 
-import PortalMessage from './message'
+import Message from '../server/message'
 
 import { RedisConfig } from '../server'
 import { IMessage } from '../server/message'
@@ -10,13 +10,14 @@ import { IMessage } from '../server/message'
 import generateUUID from '../utils/uuid.util'
 import { createRedisClient } from '../utils/helpers.util'
 
-import { IPortalConfig, IPortalInternalMessage, IPortalInternalSocketUpdate } from './defs'
+import { IPortalConfig, IPortalInternalMessage, PortalInternalSocketType } from './defs'
 
 declare interface Portal extends EventEmitter {
-	on(event: 'connection', listener: (this: Portal, clientId?: string) => void): this
+	on(event: 'connection', listener: (this: Portal) => void): this
+	on(event: 'authentication', listener: (this: Portal, clientId: string) => void): this
 	on(event: 'disconnection', listener: (this: Portal, clientId?: string) => void): this
 
-	on(event: 'message', listener: (this: Portal, message: PortalMessage) => void): this
+	on(event: 'message', listener: (this: Portal, message: Message, clientId?: string) => void): this
 }
 
 class Portal extends EventEmitter {
@@ -59,39 +60,47 @@ class Portal extends EventEmitter {
 				return this.emit('error', error)
 			}
 
-			const { update, message, type } = json
+			const { portalId } = json
+			if(portalId !== this.id && !this.config.reportAllEvents)
+				return
+
+			const { type, clientId, message } = json
 
 			switch(type) {
 				case 'connection':
-					return this.handleSocketUpdate(update)
+					return this.handleSocketUpdate(type)
+				case 'authentication':
+					return this.handleSocketUpdate(type, clientId)
 				case 'message':
-					return this.handleMessage(message)
+					return this.handleMessage(message, clientId)
 				case 'disconnection':
-					return this.handleSocketUpdate(update)
+					return this.handleSocketUpdate(type, clientId)
 			}
 		}).subscribe(this.portalPubSubNamespace())
 	}
 
-	private handleSocketUpdate(update: IPortalInternalSocketUpdate) {
-		const { id, type } = update
-
-		this.emit(type, id)
+	private handleSocketUpdate(type: PortalInternalSocketType, clientId?: string) {
+		this.emit(type, clientId)
 	}
 
-	private handleMessage(_message: IMessage) {
-		const message = new PortalMessage(_message.op, _message.d, _message.t, { sequence: _message.s })
+	private handleMessage(_message: IMessage, clientId?: string) {
+		const message = new Message(_message.op, _message.d, _message.t, { sequence: _message.s })
 
-		this.emit('message', message)
+		this.emit('message', message, clientId)
 	}
 
 	private registerPortal() {
+		this.log('publishing portal id', this.id)
+
 		this.publishReadyState(true)
 		this.redis.sadd(this.availablePortalsNamespace(), this.id)
+
+		this.log('published! ready to recieve updates on namespace', this.config.namespace)
 	}
 
 	private setupCloseHandler() {
 		death((signal, err) => {
-			console.log("[cryb/mesa/portal] shutting down...")
+			this.log('shutting down...')
 
 			this.publishReadyState(false)
 			this.redis.srem(this.availablePortalsNamespace(), this.id)
@@ -112,16 +121,29 @@ class Portal extends EventEmitter {
 	}
 
 	private portalPubSubNamespace() {
-		return this.clientNamespace(`portal_${this.id}`)
+		return this.clientNamespace(`portal`)
 	}
 
 	private availablePortalsNamespace() {
 		return this.clientNamespace('available_portals')
 	}
 
+	private log(...messages: string[]) {
+		if(!this.config.verbose)
+			return
+
+		console.log('[@cryb/mesa/portal]', ...messages)
+	}
+
 	private parseConfig = (config?: IPortalConfig) => {
 		if (!config)
 			config = {}
+
+		if (typeof config.reportAllEvents === 'undefined')
+			config.reportAllEvents = false
+
+		if (typeof config.verbose === 'undefined')
+			config.verbose = false
 
 		return config
 	}

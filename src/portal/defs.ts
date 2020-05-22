@@ -7,24 +7,18 @@ export interface IPortalUpdate {
 
 export interface IPortalConfig {
 	namespace?: string
+	verbose?: boolean
+
+	reportAllEvents?: boolean
 }
 
-type PortalInternalSocketType = 'connection' | 'disconnection'
-
-export interface IPortalInternalSocketUpdate {
-	id?: string
-	type: PortalInternalSocketType
-}
-
-// export interface IPortalInternalWSMessage extends IMessage {
-// 	sId?: string
-// }
-
+export type PortalInternalSocketType = 'connection' | 'authentication' | 'disconnection'
 type PortalInternalMessageType = PortalInternalSocketType | 'message'
 
 export interface IPortalInternalMessage {
 	type: PortalInternalMessageType
+	portalId?: string // Added automagically
+	clientId?: string
 
-	update?: IPortalInternalSocketUpdate
 	message?: IMessage
 }

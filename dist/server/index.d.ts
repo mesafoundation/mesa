@@ -17,6 +17,10 @@ export interface ISyncConfig {
     enabled: boolean;
     redeliveryInterval?: 0 | number;
 }
+export interface IPortalConfig {
+    enabled: boolean;
+    distributeLoad?: boolean;
+}
 export interface IHeartbeatConfig {
     enabled: boolean;
     interval?: 10000 | number;
@@ -41,6 +45,7 @@ interface IServerConfig {
     client?: IClientConfig;
     options?: IServerOptions;
     sync?: ISyncConfig;
+    portal?: IPortalConfig;
     heartbeat?: IHeartbeatConfig;
     reconnect?: IReconnectConfig;
     authentication?: IAuthenticationConfig;
@@ -61,12 +66,15 @@ declare class Server extends EventEmitter {
     clientConfig: IClientConfig;
     serverOptions: IServerOptions;
     syncConfig: ISyncConfig;
+    portalConfig: IPortalConfig;
     heartbeatConfig: IHeartbeatConfig;
     reconnectConfig: IReconnectConfig;
     authenticationConfig: IAuthenticationConfig;
+    private portalIndex;
     constructor(config?: IServerConfig);
     send(message: Message, _recipients?: string[], excluding?: string[]): Promise<number | void>;
-    sendPortalableMessage(message: Message, client: Client): void;
+    close(): void;
+    sendPortalableMessage(_message: Message, client: Client): void;
     pubSubNamespace(): string;
     private getNamespace;
     private portalPubSubNamespace;
@@ -79,6 +87,7 @@ declare class Server extends EventEmitter {
     private loadInitialState;
     private handlePortalUpdate;
     private registerConnection;
+    registerAuthentication(client: Client): void;
     registerDisconnection(disconnectingClient: Client): void;
     private handleInternalMessage;
     private handleUndeliverableMessage;

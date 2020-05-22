@@ -29,6 +29,11 @@ export interface ISyncConfig {
 	redeliveryInterval?: 0 | number
 }
 
+export interface IPortalConfig {
+	enabled: boolean
+	distributeLoad?: boolean
+}
+
 export interface IHeartbeatConfig {
 	enabled: boolean
 
@@ -62,6 +67,7 @@ interface IServerConfig {
 	options?: IServerOptions
 
 	sync?: ISyncConfig
+	portal?: IPortalConfig
 	heartbeat?: IHeartbeatConfig
 	reconnect?: IReconnectConfig
 	authentication?: IAuthenticationConfig
@@ -89,9 +95,12 @@ class Server extends EventEmitter {
 	public serverOptions: IServerOptions
 
 	public syncConfig: ISyncConfig
+	public portalConfig: IPortalConfig
 	public heartbeatConfig: IHeartbeatConfig
 	public reconnectConfig: IReconnectConfig
 	public authenticationConfig: IAuthenticationConfig
+
+	private portalIndex: number = 0
 
 	constructor(config?: IServerConfig) {
 		super()
@@ -145,8 +154,20 @@ class Server extends EventEmitter {
 		}
 	}
 
-	public sendPortalableMessage(message: Message, client: Client) {
-		this.sendInternalPortalMessage({ type: 'message', message: message.serialize(true) as IMessage })
+	public close() {
+		this.wss.close()
+	}
+
+	public sendPortalableMessage(_message: Message, client: Client) {
+		const message: IPortalInternalMessage = {
+			type: 'message',
+			message: _message.serialize(true) as IMessage
+		}
+
+		if(client.id)
+			message.clientId = client.id
+
+		this.sendInternalPortalMessage(message)
 	}
 
 	public pubSubNamespace() {
@@ -195,6 +216,8 @@ class Server extends EventEmitter {
 		this.syncConfig = config.sync || { enabled: false }
 		this.heartbeatConfig = config.heartbeat || { enabled: false }
 		this.reconnectConfig = config.reconnect || { enabled: false }
+
+		this.portalConfig = parseConfig(config.portal, ['enabled', 'distributeLoad'], [false, true])
 		this.authenticationConfig = parseConfig(config.authentication, ['timeout', 'required', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, false, true, true, true])
 
 		if (this.syncConfig && this.syncConfig.enabled && !this.authenticationConfig.storeConnectedUsers)
@@ -250,13 +273,31 @@ class Server extends EventEmitter {
 
 	// Portal
 	private sendInternalPortalMessage(internalMessage: IPortalInternalMessage) {
-		if (!this.redis)
+		if (!this.portalConfig.enabled)
 			return
-		else if(this.portals.length === 0)
+		else if (!this.redis)
+			return console.log('[@cryb/mesa] Redis needs to be enabled for Portals to work. Enable Redis in your Mesa server config')
+		else if (this.portals.length === 0)
 			return
 
-		const chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)]
-		this.publisher.publish(this.getNamespace(`portal_${chosenPortal}`), JSON.stringify(internalMessage))
+		let chosenPortal: string
+
+		if(this.portals.length === 1)
+			chosenPortal = this.portals[0]
+		else if(this.portalConfig.distributeLoad) {
+			this.portalIndex += 1
+
+			if(this.portalIndex >= this.portals.length)
+				this.portalIndex = 0
+
+			chosenPortal = this.portals[this.portalIndex]
+		} else
+			chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)]
+
+		this.publisher.publish(this.portalPubSubNamespace(), JSON.stringify({
+			...internalMessage,
+			portalId: chosenPortal
+		}))
 	}
 
 	// State Management
@@ -279,25 +320,36 @@ class Server extends EventEmitter {
 	// State Updates
 	private registerConnection(socket: WebSocket, req: http.IncomingMessage) {
 		const client = new Client(socket, this, { req })
-
-		client.send(new Message(10, this.fetchClientConfig()))
+		client.send(new Message(10, this.fetchClientConfig()), true)
 
 		this.clients.push(client)
 		this.emit('connection', client)
-		this.sendInternalPortalMessage({ type: 'connection' })
+
+		this.sendInternalPortalMessage({
+			type: 'connection'
+		})
+	}
+
+	public registerAuthentication(client: Client) {
+		this.sendInternalPortalMessage({
+			type: 'authentication',
+			clientId: client.id
+		})
 	}
 
 	public registerDisconnection(disconnectingClient: Client) {
 		const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId)
-
 		this.clients.splice(clientIndex, 1)
 
-		this.sendInternalPortalMessage({ type: 'disconnection' })
+		this.sendInternalPortalMessage({
+			type: 'disconnection',
+			clientId: disconnectingClient.id
+		})
 	}
 
 	private handleInternalMessage(internalMessage: IInternalMessage) {
 		const { message: _message, recipients: _recipients } = internalMessage,
-			message = new Message(_message.op, _message.d, _message.t)
+					message = new Message(_message.op, _message.d, _message.t)
 
 		let recipients: Client[]
 

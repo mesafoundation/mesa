@@ -5,16 +5,15 @@ export interface IPortalUpdate {
 }
 export interface IPortalConfig {
     namespace?: string;
+    verbose?: boolean;
+    reportAllEvents?: boolean;
 }
-declare type PortalInternalSocketType = 'connection' | 'disconnection';
-export interface IPortalInternalSocketUpdate {
-    id?: string;
-    type: PortalInternalSocketType;
-}
+export declare type PortalInternalSocketType = 'connection' | 'authentication' | 'disconnection';
 declare type PortalInternalMessageType = PortalInternalSocketType | 'message';
 export interface IPortalInternalMessage {
     type: PortalInternalMessageType;
-    update?: IPortalInternalSocketUpdate;
+    portalId?: string;
+    clientId?: string;
     message?: IMessage;
 }
 export {};

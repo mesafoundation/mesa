@@ -220,6 +220,7 @@ class Client extends EventEmitter {
 			this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}))
 
 		this.authenticated = true
+		this.server.registerAuthentication(this)
 	}
 
 	private registerDisconnection(code: number, reason?: string) {
