@@ -524,6 +524,14 @@ Mesa's Server component allows for the following configuration to be passed in d
     redeliveryInterval?: number
   }
   // Optional
+  portal?: {
+    // Enable / disable portals. Defaults to false
+    enabled: boolean
+
+    // Optional: try and distribute messages between Portals as best as possible. Defaults to true
+    distributeLoad?: boolean
+  }
+  // Optional
   heartbeat?: {
     // Enable / disable heartbeats. Defaults to false
     enabled: boolean
