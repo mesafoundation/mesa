@@ -9,7 +9,7 @@ export const handleUndeliveredMessage = async (
 	client: Redis,
 	namespace: string
 ) => {
-	if (!message.options.sync)
+	if (message.options && !message.options.sync)
 		return
 	else if (!recipient)
 		return
