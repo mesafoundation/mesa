@@ -1,33 +1,33 @@
 {
-    "scripts": {
-        "build": "bash ./scripts/build.sh",
-        "deploy": "bash ./scripts/deploy.sh",
-        "lint": "tslint src/**/*.ts{,x}"
-    },
-    "husky": {
-        "hooks": {
-            "pre-commit": "yarn build"
-        }
-    },
-    "devDependencies": {
-        "@babel/core": "^7.2.2",
-        "@babel/plugin-transform-runtime": "^7.4.4",
-        "@babel/preset-env": "^7.2.0",
-        "@babel/runtime": "^7.4.5",
-        "@types/axios": "^0.14.0",
-        "@types/node": "^12.0.8",
-        "@types/ws": "^6.0.1",
-        "babel-plugin-transform-runtime": "^6.23.0",
-        "babel-polyfill": "^6.26.0",
-        "gulp": "^4.0.0",
-        "gulp-typescript": "^5.0.1",
-        "husky": "^3.1.0",
-        "minimatch": ">=3.0.2",
-        "rimraf": "^2.6.3",
-        "ts-node": "^8.3.0",
-        "tsc-watch": "^4.0.0",
-        "tslint": "^5.20.1",
-        "typescript": "^3.7.4"
-    },
-    "dependencies": {}
+  "scripts": {
+    "build": "bash ./scripts/build.sh",
+    "deploy": "bash ./scripts/deploy.sh",
+    "lint": "tslint src/**/*.ts{,x}"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn build"
+    }
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/plugin-transform-runtime": "^7.4.4",
+    "@babel/preset-env": "^7.2.0",
+    "@babel/runtime": "^7.4.5",
+    "@types/axios": "^0.14.0",
+    "@types/node": "^12.0.8",
+    "@types/ws": "^6.0.1",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-polyfill": "^6.26.0",
+    "gulp": "^4.0.0",
+    "gulp-typescript": "^5.0.1",
+    "husky": "^3.1.0",
+    "minimatch": ">=3.0.2",
+    "rimraf": "^2.6.3",
+    "ts-node": "^8.3.0",
+    "tsc-watch": "^4.0.0",
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.4"
+  },
+  "dependencies": {}
 }

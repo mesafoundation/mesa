@@ -7,10 +7,18 @@ interface IClientConfig {
 interface IClientAuthenticationConfig {
     shouldSync?: boolean;
 }
+export interface IClientConnectionOptions {
+    isInitialConnection: boolean;
+    isInitialSessionConnection: boolean;
+    isAutomaticReconnection: boolean;
+}
+export interface IClientDisconnectionOptions {
+    willAttemptReconnect: boolean;
+}
 declare interface Client extends EventEmitter {
-    on(event: 'connected', listener: (this: Client) => void): this;
+    on(event: 'connected', listener: (this: Client, options: IClientConnectionOptions) => void): this;
     on(event: 'message', listener: (this: Client, message: Message) => void): this;
-    on(event: 'disconnected', listener: (this: Client, code: number, reason: string) => void): this;
+    on(event: 'disconnected', listener: (this: Client, code: number, reason: string, options: IClientDisconnectionOptions) => void): this;
     on(event: 'error', listener: (this: Client, error: Error) => void): this;
 }
 declare class Client extends EventEmitter {
@@ -26,6 +34,10 @@ declare class Client extends EventEmitter {
     private reconnectionInterval;
     private reconnectionIntervalTime;
     private authenticationResolve;
+    private isInitialConnection;
+    private isInitialSessionConnection;
+    private isAutomaticReconnection;
+    private didForcefullyDisconnect;
     constructor(url: string, config?: IClientConfig);
     connect: () => Promise<unknown>;
     send(message: Message): number;

@@ -13,12 +13,21 @@ class Client extends events_1.EventEmitter {
         this.authenticated = false;
         this.queue = [];
         this.rules = [];
+        // Connection Options
+        this.isInitialConnection = true;
+        // First connection (not counting force disconnections)
+        this.isInitialSessionConnection = true;
+        // First session connection connection (counting force disconnections)
+        this.isAutomaticReconnection = false;
+        // Disconnection Options
+        this.didForcefullyDisconnect = false;
         this.connect = () => new Promise((resolve, reject) => {
             if (this.reconnectionInterval)
                 clearInterval(this.reconnectionInterval);
             if (this.ws && this.ws.readyState === this.ws.OPEN)
                 throw new Error('This client is already connected to a pre-existing Mesa server. Call disconnect() to disconnect before attempting to reconnect again');
             this.ws = new ws_1.default(this.url);
+            this.didForcefullyDisconnect = false;
             const resolveConnection = () => {
                 this.ws.removeEventListener('open', resolveConnection);
                 resolve();
@@ -54,6 +63,9 @@ class Client extends events_1.EventEmitter {
     }
     disconnect(code, data) {
         this.ws.close(code, data);
+        this.didForcefullyDisconnect = true;
+        if (this.reconnectionInterval)
+            clearInterval(this.reconnectionInterval);
     }
     parseConfig(_config) {
         const config = Object.assign({}, _config);
@@ -75,7 +87,17 @@ class Client extends events_1.EventEmitter {
             .catch(() => { });
     }
     registerOpen() {
-        this.emit('connected');
+        this.emit('connected', {
+            isInitialConnection: this.isInitialConnection,
+            isInitialSessionConnection: this.isInitialSessionConnection,
+            isAutomaticReconnection: this.isAutomaticReconnection
+        });
+        if (this.isInitialConnection)
+            this.isInitialConnection = false;
+        if (this.isInitialSessionConnection)
+            this.isInitialSessionConnection = false;
+        if (this.isAutomaticReconnection)
+            this.isAutomaticReconnection = false;
         if (this.queue.length > 0) {
             this.queue.forEach(this.send);
             this.queue = [];
@@ -120,11 +142,14 @@ class Client extends events_1.EventEmitter {
             this.messages.recieved.push(message);
     }
     registerClose(code, reason) {
-        this.emit('disconnected', code, reason);
+        this.emit('disconnected', code, reason, { willAttemptReconnect: (!!this.reconnectionIntervalTime && !this.didForcefullyDisconnect) });
+        if (this.didForcefullyDisconnect)
+            this.isInitialSessionConnection = true;
         if (this.reconnectionIntervalTime) {
             if (this.reconnectionInterval)
                 clearInterval(this.reconnectionInterval);
             this.ws = null;
+            this.isAutomaticReconnection = true;
             this.reconnectionInterval = setInterval(() => this.connectAndSupressWarnings(), this.reconnectionIntervalTime);
         }
     }

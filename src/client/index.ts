@@ -6,216 +6,273 @@ import Message, { IMessage, IMessageOptions, IMessages } from '../server/message
 import { getVersion } from '../utils/getters.util'
 
 interface IClientConfig {
-	autoConnect?: boolean
+  autoConnect?: boolean
 }
 
 interface IClientAuthenticationConfig {
-	shouldSync?: boolean
+  shouldSync?: boolean
+}
+
+export interface IClientConnectionOptions {
+  isInitialConnection: boolean
+  isInitialSessionConnection: boolean
+
+  isAutomaticReconnection: boolean
+}
+
+export interface IClientDisconnectionOptions {
+  willAttemptReconnect: boolean
 }
 
 // tslint:disable-next-line: interface-name
 declare interface Client extends EventEmitter {
-	on(event: 'connected', listener: (this: Client) => void): this
-	on(event: 'message', listener: (this: Client, message: Message) => void): this
-	on(event: 'disconnected', listener: (this: Client, code: number, reason: string) => void): this
+  on(event: 'connected', listener: (this: Client, options: IClientConnectionOptions) => void): this
+  on(event: 'message', listener: (this: Client, message: Message) => void): this
+  on(event: 'disconnected', listener: (
+    this: Client,
+    code: number,
+    reason: string,
+    options: IClientDisconnectionOptions
+  ) => void): this
 
-	on(event: 'error', listener: (this: Client, error: Error) => void): this
+  on(event: 'error', listener: (this: Client, error: Error) => void): this
 }
 
 class Client extends EventEmitter {
-	public url: string
+  public url: string
 
-	public authenticated: boolean = false
+  public authenticated: boolean = false
 
-	public messages: IMessages
-	private config: IClientConfig
+  public messages: IMessages
+  private config: IClientConfig
 
-	private ws: WebSocket
-	private queue: Message[] = []
+  private ws: WebSocket
+  private queue: Message[] = []
 
-	private rules: Rule[] = []
+  private rules: Rule[] = []
 
-	private heartbeatIntervalTime: number
-	private authenticationTimeout: number
+  private heartbeatIntervalTime: number
+  private authenticationTimeout: number
 
-	private reconnectionInterval: NodeJS.Timeout
-	private reconnectionIntervalTime: number
+  private reconnectionInterval: NodeJS.Timeout
+  private reconnectionIntervalTime: number
 
-	private authenticationResolve: (value?: unknown) => void
+  private authenticationResolve: (value?: unknown) => void
 
-	constructor(url: string, config?: IClientConfig) {
-		super()
+  // Connection Options
+  private isInitialConnection: boolean = true
+  // First connection (not counting force disconnections)
+  private isInitialSessionConnection: boolean = true
+  // First session connection connection (counting force disconnections)
 
-		config = this.parseConfig(config)
+  private isAutomaticReconnection: boolean = false
 
-		this.url = url
-		this.config = config
+  // Disconnection Options
+  private didForcefullyDisconnect: boolean = false
 
-		if (config.autoConnect)
-			this.connect()
-	}
+  constructor(url: string, config?: IClientConfig) {
+    super()
 
-	public connect = () => new Promise((resolve, reject) => {
-		if (this.reconnectionInterval)
-			clearInterval(this.reconnectionInterval)
+    config = this.parseConfig(config)
 
-		if (this.ws && this.ws.readyState === this.ws.OPEN)
-			throw new Error('This client is already connected to a pre-existing Mesa server. Call disconnect() to disconnect before attempting to reconnect again')
+    this.url = url
+    this.config = config
 
-		this.ws = new WebSocket(this.url)
+    if (config.autoConnect)
+      this.connect()
+  }
 
-		const resolveConnection = () => {
-			this.ws.removeEventListener('open', resolveConnection)
-			resolve()
-		}
+  public connect = () => new Promise((resolve, reject) => {
+    if (this.reconnectionInterval)
+      clearInterval(this.reconnectionInterval)
 
-		this.ws.addEventListener('open', resolveConnection)
+    if (this.ws && this.ws.readyState === this.ws.OPEN)
+      throw new Error('This client is already connected to a pre-existing Mesa server. Call disconnect() to disconnect before attempting to reconnect again')
 
-		const rejectError = error => {
-			this.ws.removeEventListener('error', rejectError)
-			reject(error)
-		}
+    this.ws = new WebSocket(this.url)
 
-		this.ws.addEventListener('error', rejectError)
+    this.didForcefullyDisconnect = false
 
-		this.ws.on('open', () => this.registerOpen())
-		this.ws.on('message', data => this.registerMessage(data))
-		this.ws.on('close', (code, reason) => this.registerClose(code, reason))
-		this.ws.on('error', error => this.registerError(error))
-	})
+    const resolveConnection = () => {
+      this.ws.removeEventListener('open', resolveConnection)
+      resolve()
+    }
 
-	public send(message: Message) {
-		if (this.ws.readyState !== this.ws.OPEN)
-			return this.queue.push(message)
+    this.ws.addEventListener('open', resolveConnection)
 
-		if (this.rules.indexOf('store_messages') > -1)
-			this.messages.sent.push(message)
+    const rejectError = error => {
+      this.ws.removeEventListener('error', rejectError)
+      reject(error)
+    }
 
-		this.ws.send(message.serialize())
-	}
+    this.ws.addEventListener('error', rejectError)
 
-	public authenticate = (data: object, config?: IClientAuthenticationConfig) => new Promise(async (resolve, reject) => {
-		config = this.parseAuthenticationConfig(config)
+    this.ws.on('open', () => this.registerOpen())
+    this.ws.on('message', data => this.registerMessage(data))
+    this.ws.on('close', (code, reason) => this.registerClose(code, reason))
+    this.ws.on('error', error => this.registerError(error))
+  })
 
-		this.authenticationResolve = resolve
-		this.send(new Message(2, { ...data, ...config }))
-	})
+  public send(message: Message) {
+    if (this.ws.readyState !== this.ws.OPEN)
+      return this.queue.push(message)
 
-	public disconnect(code?: number, data?: string) {
-		this.ws.close(code, data)
-	}
+    if (this.rules.indexOf('store_messages') > -1)
+      this.messages.sent.push(message)
 
-	private parseConfig(_config?: IClientConfig) {
-		const config = Object.assign({}, _config)
+    this.ws.send(message.serialize())
+  }
 
-		if (typeof config.autoConnect === 'undefined')
-			config.autoConnect = true
+  public authenticate = (data: object, config?: IClientAuthenticationConfig) => new Promise(async (resolve, reject) => {
+    config = this.parseAuthenticationConfig(config)
 
-		return config
-	}
+    this.authenticationResolve = resolve
+    this.send(new Message(2, { ...data, ...config }))
+  })
 
-	private parseAuthenticationConfig(_config?: IClientAuthenticationConfig) {
-		const config = Object.assign({}, _config)
+  public disconnect(code?: number, data?: string) {
+    this.ws.close(code, data)
 
-		if (typeof config.shouldSync === 'undefined')
-			config.shouldSync = true
+    this.didForcefullyDisconnect = true
 
-		return config
-	}
+    if (this.reconnectionInterval)
+      clearInterval(this.reconnectionInterval)
+  }
 
-	private connectAndSupressWarnings() {
-		this.connect()
-			// tslint:disable-next-line: no-empty
-			.then(() => { })
-			// tslint:disable-next-line: no-empty
-			.catch(() => { })
-	}
+  private parseConfig(_config?: IClientConfig) {
+    const config = Object.assign({}, _config)
 
-	private registerOpen() {
-		this.emit('connected')
+    if (typeof config.autoConnect === 'undefined')
+      config.autoConnect = true
 
-		if (this.queue.length > 0) {
-			this.queue.forEach(this.send)
-			this.queue = []
-		}
-	}
+    return config
+  }
 
-	private registerMessage(data: WebSocket.Data) {
-		let json: IMessage
+  private parseAuthenticationConfig(_config?: IClientAuthenticationConfig) {
+    const config = Object.assign({}, _config)
 
-		try {
-			json = JSON.parse(data.toString())
-		} catch (error) {
-			return console.error(error)
-		}
+    if (typeof config.shouldSync === 'undefined')
+      config.shouldSync = true
 
-		const { op, d, t, s } = json,
-				message = new Message(op, d, t)
+    return config
+  }
 
-		if (s)
-			message.sequence = s
+  private connectAndSupressWarnings() {
+    this.connect()
+      // tslint:disable-next-line: no-empty
+      .then(() => { })
+      // tslint:disable-next-line: no-empty
+      .catch(() => { })
+  }
 
-		switch (message.opcode) {
-			case 1:
-				return this.send(new Message(11, {}))
-			case 10:
-				const {
-					c_heartbeat_interval,
-					c_reconnect_interval,
-					c_authentication_timeout,
-					rules
-				} = message.data as IClientConnectionConfig
+  private registerOpen() {
+    this.emit('connected', {
+      isInitialConnection: this.isInitialConnection,
+      isInitialSessionConnection: this.isInitialSessionConnection,
 
-				if (c_heartbeat_interval)
-					this.heartbeatIntervalTime = c_heartbeat_interval
+      isAutomaticReconnection: this.isAutomaticReconnection
+    })
 
-				if (c_reconnect_interval)
-					this.reconnectionIntervalTime = c_reconnect_interval
+    if (this.isInitialConnection)
+      this.isInitialConnection = false
 
-				if (c_authentication_timeout)
-					this.authenticationTimeout = c_authentication_timeout
+    if (this.isInitialSessionConnection)
+      this.isInitialSessionConnection = false
 
-				if (rules.indexOf('enforce_equal_versions') > -1)
-					this.send(
-						new Message(0, { v: getVersion() }, 'CLIENT_VERSION')
-					)
+    if (this.isAutomaticReconnection)
+      this.isAutomaticReconnection = false
 
-				if (rules.indexOf('store_messages') > -1)
-					this.messages = { sent: [], recieved: [] }
+    if (this.queue.length > 0) {
+      this.queue.forEach(this.send)
+      this.queue = []
+    }
+  }
 
-				this.rules = rules
+  private registerMessage(data: WebSocket.Data) {
+    let json: IMessage
 
-				return
-			case 22:
-				this.authenticated = true
+    try {
+      json = JSON.parse(data.toString())
+    } catch (error) {
+      return console.error(error)
+    }
 
-				if (this.rules.indexOf('sends_user_object') > -1 && this.authenticationResolve)
-					this.authenticationResolve(d)
+    const { op, d, t, s } = json,
+        message = new Message(op, d, t)
 
-				return
-		}
+    if (s)
+      message.sequence = s
 
-		this.emit('message', message)
+    switch (message.opcode) {
+      case 1:
+        return this.send(new Message(11, {}))
+      case 10:
+        const {
+          c_heartbeat_interval,
+          c_reconnect_interval,
+          c_authentication_timeout,
+          rules
+        } = message.data as IClientConnectionConfig
 
-		if (this.rules.indexOf('store_messages') > -1)
-			this.messages.recieved.push(message)
-	}
+        if (c_heartbeat_interval)
+          this.heartbeatIntervalTime = c_heartbeat_interval
 
-	private registerClose(code?: number, reason?: string) {
-		this.emit('disconnected', code, reason)
+        if (c_reconnect_interval)
+          this.reconnectionIntervalTime = c_reconnect_interval
 
-		if (this.reconnectionIntervalTime) {
-			if (this.reconnectionInterval)
-				clearInterval(this.reconnectionInterval)
+        if (c_authentication_timeout)
+          this.authenticationTimeout = c_authentication_timeout
 
-			this.ws = null
-			this.reconnectionInterval = setInterval(() => this.connectAndSupressWarnings(), this.reconnectionIntervalTime)
-		}
-	}
+        if (rules.indexOf('enforce_equal_versions') > -1)
+          this.send(
+            new Message(0, { v: getVersion() }, 'CLIENT_VERSION')
+          )
 
-	private registerError(error: Error) {
-		this.emit('error', error)
-	}
+        if (rules.indexOf('store_messages') > -1)
+          this.messages = { sent: [], recieved: [] }
+
+        this.rules = rules
+
+        return
+      case 22:
+        this.authenticated = true
+
+        if (this.rules.indexOf('sends_user_object') > -1 && this.authenticationResolve)
+          this.authenticationResolve(d)
+
+        return
+    }
+
+    this.emit('message', message)
+
+    if (this.rules.indexOf('store_messages') > -1)
+      this.messages.recieved.push(message)
+  }
+
+  private registerClose(code?: number, reason?: string) {
+    this.emit(
+      'disconnected',
+      code,
+      reason,
+      { willAttemptReconnect: (!!this.reconnectionIntervalTime && !this.didForcefullyDisconnect) }
+    )
+
+    if (this.didForcefullyDisconnect)
+      this.isInitialSessionConnection = true
+
+    if (this.reconnectionIntervalTime) {
+      if (this.reconnectionInterval)
+        clearInterval(this.reconnectionInterval)
+
+      this.ws = null
+      this.isAutomaticReconnection = true
+      this.reconnectionInterval = setInterval(() => this.connectAndSupressWarnings(), this.reconnectionIntervalTime)
+    }
+  }
+
+  private registerError(error: Error) {
+    this.emit('error', error)
+  }
 }
 
 export default Client
