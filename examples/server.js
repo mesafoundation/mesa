@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /**
   This script will start a Mesa server on port :4000 with portals enabled
 **/
@@ -27,7 +28,7 @@ mesa.on('connection', client => {
   })
 
   client.on('message', message => {
-  	const { data, type } = message
+    const { data, type } = message
 
     console.log('Recieved', data, type, 'from', client.id || 'client')
   })

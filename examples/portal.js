@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /**
   This script will log events on a Mesa server using a Portal
 **/
@@ -5,8 +6,8 @@
 const { Portal } = require('../dist')
 
 const portal = new Portal('redis://localhost:6379', {
-	namespace: 'example',
-	verbose: true
+  namespace: 'example',
+  verbose: true
 })
 
 portal.on('connection', () => {
