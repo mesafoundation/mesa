@@ -60,7 +60,7 @@ In a nutshell, Mesa provides a simple, configurable wrapper that provides suppor
 * Better disconnection handling
 
 ### Status
-`@cryb/mesa` has been actively developed since December 2019
+`@cryb/mesa` has been actively developed since mid-2019 internally and was open-sourced in December 2019
 
 ## Codebase
 The codebase for `@cryb/mesa` is written in JavaScript, utilising TypeScript and Node.js
@@ -75,7 +75,7 @@ We use TSLint in order to lint our code. Run `yarn lint` before committing any c
 ## Installation
 This library is available on the [NPM registry](https://www.npmjs.com/package/@cryb/mesa). To install, run:
 ```bash
-npm i @cryb/mesa --save
+npm install @cryb/mesa --save
 ```
 If you're using [Yarn](https://yarnpkg.com), run:
 
@@ -87,7 +87,7 @@ yarn add @cryb/mesa
 ### Server Side
 Import the library as you would with any other Node package:
 ```js
-const Mesa = require('@cryb/mesa')
+const Mesa = require('@cryb/mesa').default
 // or using ES modules
 import Mesa from '@cryb/mesa'
 ```
@@ -147,8 +147,8 @@ mesa.on('connection', client => {
       /**
        * Once authentication data has been supplied from the client message, you can authenticate via a call to a microservice or database lookup
        */
-      const { data: user } = await axios.post('http://localhost:4500', { token }),
-        { info: { id } } = user
+      const { data: user } = await axios.post('http://localhost:4500', { token })
+      const { info: { id } } = user
 
       /**
        * Once you have authenticated the user, call the done method supplied in the callback with two parameters.
@@ -217,7 +217,7 @@ We also support client configuration for message sync. For example, if a client 
 client.authenticate({ token: fetchToken() }, { shouldSync: false })
 ```
 
-If you want to only use sync on reconnects, look at the following example using [`mesa-js-client`](https://github.com/neoncloth/mesa-js-client):
+If you want to only use sync on reconnects, look at the following example:
 ```js
 client.on('connection', async ({ isInitialConnection }) => {
   console.log('Connected to Mesa')
@@ -233,11 +233,11 @@ If you want to send a message from the server that isn't synced to clients, set 
 client.send(new Message(0, { typing: true }, 'TYPING_UPDATE', { sync: false }))
 ```
 
-This is useful when sending messages that does not affect the clients application state, such as typing indicator updates
+This is useful when sending messages which can be lost with little to no repercussions for the client application state, such as typing indicator updates
 
 #### Dispatch Events
-Dispatch events are server-side events that are used to send messages to Mesa clients throughout a large codebase. Codebases that split their code up between multiple files will find dispatch events particularly useful.
-
+Dispatch events are server-side events that are used to send messages to Mesa clients throughout a large codebase. Codebases that split their code up between multiple f
+iles will find dispatch events particularly useful.
 To use dispatch events you'll need a Redis instance and Pub/Sub to be enabled on the core Mesa server. To create a dispatch event, import the `Dispatcher` module from Mesa:
 ```js
 const { Dispatcher } = require('@cryb/mesa')
@@ -338,7 +338,7 @@ const portal = new Portal('redis://localhost:6379')
 ```
 
 We provide expansive configuration support for customising Portal to your needs. Here's a rundown of options we provide:
-```
+```ts
 {
   // Optional: namespace for Redis events. This should match the namespace on the Mesa server you're targetting if that Mesa server has a namespace
   namespace?: string
@@ -395,10 +395,11 @@ An example of a Chat application handling events using Portals would look someth
 import { Portal, Dispatcher, Message } from '@cryb/portal'
 import { setStatus, fetchRoomByMemberId }  from './chat'
 
-const namespace = 'chat',
-      redisUri = 'redis://localhost:6379',
-      portal = new Portal(redisUri, { namespace }),
-      dispatcher = new Dispatcher(redisUri, { namespace })
+const namespace = 'chat'
+const redisUri = 'redis://localhost:6379'
+
+const portal = new Portal(redisUri, { namespace })
+const dispatcher = new Dispatcher(redisUri, { namespace })
 
 // We recommend you update client status on portal.authentication and not portal.connected
 portal.on('authentication', clientId => {
@@ -408,7 +409,7 @@ portal.on('authentication', clientId => {
 portal.on('message', message => {
   const { members } = fetchRoomByMemberId(message.clientId)
 
-  dispatcher.dispatch(new Message(0, { content: message.content }, 'NEW_MESSAGE'), members, message.clientId)
+  dispatcher.dispatch(new Message(0, { content: message.content }, 'NEW_MESSAGE'), members, [message.clientId])
 })
 
 portal.on('disconnection', clientId => {
