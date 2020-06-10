@@ -1,47 +1,38 @@
-const axios = require('axios').default
+/* eslint-disable @typescript-eslint/no-var-requires */
+/**
+  This script will start a Mesa server on port :4000 with portals enabled
+**/
 
 const { default: Mesa, Message } = require('../dist')
 
 const mesa = new Mesa({
-    port: 4000,
-    redis: 'redis://localhost:6379',
-
-    reconnect: {
-        enabled: true,
-        interval: 5000
-    },
-    heartbeat: {
-        enabled: true,
-        interval: 1000
-    }
+  port: 4000,
+  namespace: 'example'
 })
 
+console.log('Mesa listening on', mesa.port)
+
 mesa.on('connection', client => {
-    console.log('A client connected')
-    
-    client.authenticate(async ({ token }, done) => {
-        try {
-            const { data: user } = await axios.post('http://localhost:4500', { token }),
-                    { info: { id } } = user
+  console.log('A client connected')
+  
+  client.authenticate(async ({ id }, done) => {
+    console.log('Authenticated', id)
 
-            done(null, { id, user })
-        } catch(error) {
-            done(error)
-        }
-	})
+    done(null, { id, user: { id }})
+  })
 
-    client.on('message', message => {
-		const { data, type } = message
-		
-		switch (type) {
-			case 'PING':
-				client.send(new Message(0, {}, 'PONG'))
-		}
+  client.on('message', message => {
+    const { data, type } = message
 
-        console.log('Recieved', data, type, 'from', client.id || 'client')
-    })
+    switch(type) {
+    case 'PING':
+      client.send(new Message(0, {}, 'PONG'))
+    }
 
-    client.on('disconnect', ({ code, reason }) => {
-        console.log(`Client${client.id ? ` (${client.id})` : ' '}disconnected with`, code, reason ? ('with reason', reason) : '')
-    })
+    console.log('Recieved', data, type, 'from', client.id || 'client')
+  })
+
+  client.on('disconnect', ({ code, reason }) => {
+    console.log(`Client${client.id ? ` (${client.id}) ` : ' '}disconnected with`, code, reason ? ('with reason', reason) : '')
+  })
 })

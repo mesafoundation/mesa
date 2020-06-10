@@ -8,7 +8,7 @@ const ts = require('gulp-typescript'),
 	tsProject = ts.createProject('./tsconfig.json')
 
 const paths = {
-	src: 'src/package.json',
+	src: ['src/package.json', 'src/README.md'],
 	srcJS: 'src/*.ts',
 
 	dist: 'dist/',
