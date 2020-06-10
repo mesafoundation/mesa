@@ -58,6 +58,7 @@ declare interface Server extends EventEmitter {
 declare class Server extends EventEmitter {
     wss: WebSocket.Server;
     clients: Client[];
+    port: number;
     namespace: string;
     redis: Redis.Redis;
     publisher: Redis.Redis;

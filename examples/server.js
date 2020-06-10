@@ -3,20 +3,14 @@
   This script will start a Mesa server on port :4000 with portals enabled
 **/
 
-const axios = require('axios').default
-
 const { default: Mesa, Message } = require('../dist')
 
 const mesa = new Mesa({
   port: 4000,
-  namespace: 'example',
-
-  redis: 'redis://localhost:6379',
-
-  portal: {
-    enabled: true
-  }
+  namespace: 'example'
 })
+
+console.log('Mesa listening on', mesa.port)
 
 mesa.on('connection', client => {
   console.log('A client connected')
@@ -29,6 +23,11 @@ mesa.on('connection', client => {
 
   client.on('message', message => {
     const { data, type } = message
+
+    switch(type) {
+    case 'PING':
+      client.send(new Message(0, {}, 'PONG'))
+    }
 
     console.log('Recieved', data, type, 'from', client.id || 'client')
   })

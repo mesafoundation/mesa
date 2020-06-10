@@ -84,6 +84,7 @@ class Server extends EventEmitter {
   public wss: WebSocket.Server
   public clients: Client[] = []
 
+  public port: number
   public namespace: string
 
   public redis: Redis.Redis
@@ -200,7 +201,7 @@ class Server extends EventEmitter {
     if (config.server)
       options.server = config.server
     else
-      options.port = config.port || 4000
+      options.port = config.port
 
     this.wss = new WebSocket.Server(options)
     this.wss.on('connection', (socket, req) => this.registerConnection(socket, req))
@@ -208,6 +209,11 @@ class Server extends EventEmitter {
 
   private parseConfig(_config?: IServerConfig) {
     const config = Object.assign({}, _config)
+
+    if (!config.port)
+      config.port = 4000
+
+    this.port = config.port
 
     if (config.namespace)
       this.namespace = config.namespace
@@ -240,7 +246,7 @@ class Server extends EventEmitter {
     if (recipients.length === 0)
       return
 
-    recipients.forEach(recipient => recipient.send(message))
+    recipients.forEach(recipient => recipient.send(message, true))
   }
 
   // Setup

@@ -17,13 +17,14 @@ client.on('connected', async () => {
   await client.authenticate({ id: uuid() })
 
   setInterval(() => {
-    console.log('send')
+    console.log('Sending \'PING\' message to server')
+
     client.send(new Message(0, { r: uuid() }, 'PING'))
   }, 1000)
 })
 
-client.on('message', (data, type) => {
-  console.log('Recieved', data, type)
+client.on('message', message => {
+  console.log('Recieved', message, 'from server')
 })
 
 client.on('disconnected', (code, reason) => {
