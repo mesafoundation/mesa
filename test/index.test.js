@@ -4,7 +4,7 @@ const { default: Mesa, Message, Client } = require('../dist')
 describe('server', () => {
   describe('client', () => {
     it('allows a client to connect', done => {
-      const port = 1000
+      const port = 2000
       const server = new Mesa({ port })
       const client = new Client(`ws://localhost:${port}`)
 
@@ -12,7 +12,7 @@ describe('server', () => {
     })
 
     it('can recieve a message from a client', done => {
-      const port = 1001
+      const port = 2001
       const server = new Mesa({ port })
       const client = new Client(`ws://localhost:${port}`)
       const message = new Message(0, { x: 1, y: 2 }, 'TEST')
@@ -31,7 +31,7 @@ describe('server', () => {
 
   describe('config', () => {
     it('starts on a given port', done => {
-      const port = 2000
+      const port = 2100
       const server = new Mesa({ port })
       const client = new Client(`ws://localhost:${port}`)
 
@@ -41,9 +41,9 @@ describe('server', () => {
     it('uses a pre-existing http server', done => {
       const server = http.createServer()
 
-      server.listen(2001, () => {
-        const mesaServer = new Mesa({ server }),
-              client = new WebSocket(`ws://localhost:${server.address().port}`)
+      server.listen(2101, () => {
+        const mesaServer = new Mesa({ server })
+        const client = new WebSocket(`ws://localhost:${server.address().port}`)
 
         mesaServer.on('connection', () => {
           mesaServer.wss.close()
