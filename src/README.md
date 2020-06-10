@@ -584,7 +584,7 @@ Mesa's Server component allows for the following configuration to be passed in d
 While we have an official Client implementation for Node.js in this library, we do offer client libraries for other languages. Here's a list of official or community maintained client libraries:
 
 * [mesa-js-client](https://github.com/neoncloth/mesa-js-client) for browser-based JavaScript. Maintained by William from Cryb
-* [mesa-react-native](https://gist.github.com/neoncloth/0152667cecd9ffad21b6939ecc82a87e) for React Native. Maintained by William from Cryb
+* [mesa-react-native](https://github.com/seshchat/mesa-react-native) for React Native. Maintained by the SESH team
 
 ### Creating a Client Library
 We'd love for the community to create implementations of the Mesa client. Make sure to title the library in the style of `mesa-lang-client`. For example, a Go library would take the name of `mesa-go-client`.

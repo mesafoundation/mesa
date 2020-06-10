@@ -1,1 +1,1 @@
-export declare const getVersion: () => any;
+export declare function getVersion(): any;

@@ -51,9 +51,9 @@ export default class Message {
       this.options = this.parseOptions(options)
   }
 
-  public serialize(toJson: boolean = false, _config?: IMessageSerializationConfig) {
-    const config = this.parseSerializationConfig(_config),
-    json: IMessage = {
+  public serialize(toJson = false, _config?: IMessageSerializationConfig) {
+    const config = this.parseSerializationConfig(_config)
+    const json: IMessage = {
       op: this.opcode,
       d: this.data,
       t: this.type

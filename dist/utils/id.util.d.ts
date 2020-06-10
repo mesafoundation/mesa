@@ -1,1 +1,1 @@
-export declare const generateId: () => string;
+export declare function generateId(): string;

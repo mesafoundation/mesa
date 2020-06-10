@@ -43,10 +43,16 @@ class Client extends events_1.EventEmitter {
             this.ws.on('close', (code, reason) => this.registerClose(code, reason));
             this.ws.on('error', error => this.registerError(error));
         });
+        // eslint-disable-next-line no-async-promise-executor
         this.authenticate = (data, config) => new Promise(async (resolve, reject) => {
-            config = this.parseAuthenticationConfig(config);
-            this.authenticationResolve = resolve;
-            this.send(new message_1.default(2, Object.assign(Object.assign({}, data), config)));
+            try {
+                config = this.parseAuthenticationConfig(config);
+                this.authenticationResolve = resolve;
+                this.send(new message_1.default(2, Object.assign(Object.assign({}, data), config)));
+            }
+            catch (error) {
+                reject(error);
+            }
         });
         config = this.parseConfig(config);
         this.url = url;
@@ -81,9 +87,9 @@ class Client extends events_1.EventEmitter {
     }
     connectAndSupressWarnings() {
         this.connect()
-            // tslint:disable-next-line: no-empty
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             .then(() => { })
-            // tslint:disable-next-line: no-empty
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             .catch(() => { });
     }
     registerOpen() {
@@ -111,13 +117,14 @@ class Client extends events_1.EventEmitter {
         catch (error) {
             return console.error(error);
         }
-        const { op, d, t, s } = json, message = new message_1.default(op, d, t);
+        const { op, d, t, s } = json;
+        const message = new message_1.default(op, d, t);
         if (s)
             message.sequence = s;
         switch (message.opcode) {
             case 1:
                 return this.send(new message_1.default(11, {}));
-            case 10:
+            case 10: {
                 const { c_heartbeat_interval, c_reconnect_interval, c_authentication_timeout, rules } = message.data;
                 if (c_heartbeat_interval)
                     this.heartbeatIntervalTime = c_heartbeat_interval;
@@ -131,6 +138,7 @@ class Client extends events_1.EventEmitter {
                     this.messages = { sent: [], recieved: [] };
                 this.rules = rules;
                 return;
+            }
             case 22:
                 this.authenticated = true;
                 if (this.rules.indexOf('sends_user_object') > -1 && this.authenticationResolve)

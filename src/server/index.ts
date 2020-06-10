@@ -100,7 +100,7 @@ class Server extends EventEmitter {
   public authenticationConfig: IAuthenticationConfig
 
   private portals: string[] = []
-  private portalIndex: number = 0
+  private portalIndex = 0
 
   constructor(config?: IServerConfig) {
     super()
@@ -118,14 +118,14 @@ class Server extends EventEmitter {
       return this._send(message, this.clients)
 
     if (this.redis && _recipients && this.syncConfig.enabled) {
-      const namespace = this.getNamespace('connected_clients'),
-            onlineRecipients = [],
-            offlineRecipients = []
+      const namespace = this.getNamespace('connected_clients')
+      const onlineRecipients = []
+      const offlineRecipients = []
 
       if (_recipients && this.syncConfig.enabled)
         for (let i = 0; i < _recipients.length; i++) {
-          const recipient = _recipients[i],
-                isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
+          const recipient = _recipients[i]
+          const isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
 
           (isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient)
         }
@@ -245,9 +245,9 @@ class Server extends EventEmitter {
 
   // Setup
   private setupRedis(redisConfig: RedisConfig) {
-    const redis: Redis.Redis = createRedisClient(redisConfig),
-          publisher: Redis.Redis = createRedisClient(redisConfig),
-          subscriber: Redis.Redis = createRedisClient(redisConfig)
+    const redis: Redis.Redis = createRedisClient(redisConfig)
+    const publisher: Redis.Redis = createRedisClient(redisConfig)
+    const subscriber: Redis.Redis = createRedisClient(redisConfig)
 
     this.redis = redis
     this.publisher = publisher
@@ -255,8 +255,8 @@ class Server extends EventEmitter {
 
     this.loadInitialState()
 
-    const pubSubNamespace = this.pubSubNamespace(),
-          availablePortalsNamespace = this.availablePortalsNamespace()
+    const pubSubNamespace = this.pubSubNamespace()
+    const availablePortalsNamespace = this.availablePortalsNamespace()
 
     subscriber.on('message', async (channel, data) => {
       let json
@@ -268,10 +268,10 @@ class Server extends EventEmitter {
       }
 
       switch (channel) {
-        case pubSubNamespace:
-          return this.handleInternalMessage(json)
-        case availablePortalsNamespace:
-          return this.handlePortalUpdate(json)
+      case pubSubNamespace:
+        return this.handleInternalMessage(json)
+      case availablePortalsNamespace:
+        return this.handlePortalUpdate(json)
       }
     }).subscribe(pubSubNamespace, availablePortalsNamespace)
   }
@@ -336,8 +336,8 @@ class Server extends EventEmitter {
   }
 
   private handleInternalMessage(internalMessage: IInternalMessage) {
-    const { message: _message, recipients: _recipients } = internalMessage,
-          message = new Message(_message.op, _message.d, _message.t)
+    const { message: _message, recipients: _recipients } = internalMessage
+    const message = new Message(_message.op, _message.d, _message.t)
 
     let recipients: Client[]
 
@@ -354,9 +354,9 @@ class Server extends EventEmitter {
   }
 
   private fetchClientConfig() {
-    const config: IClientConnectionConfig = {},
-      { serverOptions, clientConfig, authenticationConfig } = this,
-      rules: Rule[] = parseRules({ serverOptions, clientConfig, authenticationConfig })
+    const config: IClientConnectionConfig = {}
+    const { serverOptions, clientConfig, authenticationConfig } = this
+    const rules: Rule[] = parseRules({ serverOptions, clientConfig, authenticationConfig })
 
     if (this.heartbeatConfig.enabled)
       config.c_heartbeat_interval = this.heartbeatConfig.interval

@@ -68,14 +68,14 @@ class Portal extends EventEmitter {
       const { type, clientId, message } = json
 
       switch (type) {
-        case 'connection':
-          return this.handleSocketUpdate(type)
-        case 'authentication':
-          return this.handleSocketUpdate(type, clientId)
-        case 'message':
-          return this.handleMessage(message, clientId)
-        case 'disconnection':
-          return this.handleSocketUpdate(type, clientId)
+      case 'connection':
+        return this.handleSocketUpdate(type)
+      case 'authentication':
+        return this.handleSocketUpdate(type, clientId)
+      case 'message':
+        return this.handleMessage(message, clientId)
+      case 'disconnection':
+        return this.handleSocketUpdate(type, clientId)
       }
     }).subscribe(this.portalPubSubNamespace())
   }
@@ -123,7 +123,7 @@ class Portal extends EventEmitter {
   }
 
   private portalPubSubNamespace() {
-    return this.clientNamespace(`portal`)
+    return this.clientNamespace('portal')
   }
 
   private availablePortalsNamespace() {

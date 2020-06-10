@@ -25,10 +25,13 @@ class Server extends events_1.EventEmitter {
         if (!this.redis && !_recipients)
             return this._send(message, this.clients);
         if (this.redis && _recipients && this.syncConfig.enabled) {
-            const namespace = this.getNamespace('connected_clients'), onlineRecipients = [], offlineRecipients = [];
+            const namespace = this.getNamespace('connected_clients');
+            const onlineRecipients = [];
+            const offlineRecipients = [];
             if (_recipients && this.syncConfig.enabled)
                 for (let i = 0; i < _recipients.length; i++) {
-                    const recipient = _recipients[i], isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
+                    const recipient = _recipients[i];
+                    const isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
                     (isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient);
                 }
             if (onlineRecipients.length > 0)
@@ -118,12 +121,15 @@ class Server extends events_1.EventEmitter {
     }
     // Setup
     setupRedis(redisConfig) {
-        const redis = helpers_util_1.createRedisClient(redisConfig), publisher = helpers_util_1.createRedisClient(redisConfig), subscriber = helpers_util_1.createRedisClient(redisConfig);
+        const redis = helpers_util_1.createRedisClient(redisConfig);
+        const publisher = helpers_util_1.createRedisClient(redisConfig);
+        const subscriber = helpers_util_1.createRedisClient(redisConfig);
         this.redis = redis;
         this.publisher = publisher;
         this.subscriber = subscriber;
         this.loadInitialState();
-        const pubSubNamespace = this.pubSubNamespace(), availablePortalsNamespace = this.availablePortalsNamespace();
+        const pubSubNamespace = this.pubSubNamespace();
+        const availablePortalsNamespace = this.availablePortalsNamespace();
         subscriber.on('message', async (channel, data) => {
             let json;
             try {
@@ -185,7 +191,8 @@ class Server extends events_1.EventEmitter {
         });
     }
     handleInternalMessage(internalMessage) {
-        const { message: _message, recipients: _recipients } = internalMessage, message = new message_1.default(_message.op, _message.d, _message.t);
+        const { message: _message, recipients: _recipients } = internalMessage;
+        const message = new message_1.default(_message.op, _message.d, _message.t);
         let recipients;
         if (_recipients.indexOf('*') > -1)
             recipients = this.clients;
@@ -197,7 +204,9 @@ class Server extends events_1.EventEmitter {
         sync_until_1.handleUndeliveredMessage(message, recipient, this.redis, this.getNamespace('undelivered_messages'));
     }
     fetchClientConfig() {
-        const config = {}, { serverOptions, clientConfig, authenticationConfig } = this, rules = utils_1.parseRules({ serverOptions, clientConfig, authenticationConfig });
+        const config = {};
+        const { serverOptions, clientConfig, authenticationConfig } = this;
+        const rules = utils_1.parseRules({ serverOptions, clientConfig, authenticationConfig });
         if (this.heartbeatConfig.enabled)
             config.c_heartbeat_interval = this.heartbeatConfig.interval;
         if (this.reconnectConfig.enabled)

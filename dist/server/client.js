@@ -84,20 +84,16 @@ class Client extends events_1.EventEmitter {
         this.heartbeatCount += 1;
     }
     registerMessage(data) {
-        let json;
-        try {
-            json = JSON.parse(data.toString());
-        }
-        catch (error) {
-            throw error;
-        }
-        const { op, d, t } = json, message = new message_1.default(op, d, t);
+        const json = JSON.parse(data.toString());
+        const { op, d, t } = json;
+        const message = new message_1.default(op, d, t);
         if (op === 0 && (this.server.clientConfig.enforceEqualVersions))
             switch (t) {
-                case 'CLIENT_VERSION':
+                case 'CLIENT_VERSION': {
                     const { v } = d;
                     if (v !== getters_util_1.getVersion() && this.server.clientConfig.enforceEqualVersions)
                         return this.disconnect(1002);
+                }
             }
         else if (op === 2 && this.authenticationCheck) {
             this.clientConfig = this.parseAuthenticationConfig(d);
@@ -145,7 +141,9 @@ class Client extends events_1.EventEmitter {
         this.server.registerDisconnection(this);
     }
     async redeliverUndeliverableMessages() {
-        const namespace = this.clientNamespace('undelivered_messages'), _undeliveredMessages = await this.server.redis.hget(namespace, this.id), messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval;
+        const namespace = this.clientNamespace('undelivered_messages');
+        const _undeliveredMessages = await this.server.redis.hget(namespace, this.id);
+        const messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval;
         let undeliveredMessages = [];
         if (_undeliveredMessages)
             try {
@@ -158,8 +156,8 @@ class Client extends events_1.EventEmitter {
             message.sequence = sequence + 1;
             return message;
         });
-        let interval, messageIndex = 0;
-        interval = setInterval(() => {
+        let messageIndex = 0;
+        const interval = setInterval(() => {
             const message = messages[messageIndex];
             if (!message)
                 return clearInterval(interval);

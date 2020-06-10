@@ -9,7 +9,7 @@ export default class DispatchEvent {
     this.action = action
   }
 
-  public serialize = (toJson: boolean = false) => {
+  public serialize = (toJson = false) => {
     const message = new Message(5, {}, this.action)
 
     return message.serialize(toJson)

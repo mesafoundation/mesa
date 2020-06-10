@@ -89,7 +89,7 @@ class Portal extends events_1.EventEmitter {
         return this.config.namespace ? `${prefix}_${this.config.namespace}` : prefix;
     }
     portalPubSubNamespace() {
-        return this.clientNamespace(`portal`);
+        return this.clientNamespace('portal');
     }
     availablePortalsNamespace() {
         return this.clientNamespace('available_portals_pool');

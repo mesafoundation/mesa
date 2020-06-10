@@ -10,7 +10,8 @@ class Message {
             this.options = this.parseOptions(options);
     }
     serialize(toJson = false, _config) {
-        const config = this.parseSerializationConfig(_config), json = {
+        const config = this.parseSerializationConfig(_config);
+        const json = {
             op: this.opcode,
             d: this.data,
             t: this.type

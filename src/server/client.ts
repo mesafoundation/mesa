@@ -49,7 +49,7 @@ class Client extends EventEmitter {
 
   public user: any
 
-  public authenticated: boolean = false
+  public authenticated = false
   public clientConfig: IClientAuthenticationConfig
 
   public socket: WebSocket
@@ -61,9 +61,9 @@ class Client extends EventEmitter {
   public authenticationCheck: AuthenticationCallback
 
   private heartbeatInterval: any
-  private heartbeatCount: number = 0
+  private heartbeatCount = 0
   private heartbeatMaxAttempts: number
-  private heartbeatAttempts: number = 0
+  private heartbeatAttempts = 0
   private heartbeatBuffer: Message[] = []
 
   constructor(socket: WebSocket, server: Server, additional?: IClientAdditional) {
@@ -78,11 +78,11 @@ class Client extends EventEmitter {
     this.setup()
   }
 
-  public send(message: Message, sendDirectly: boolean = false) {
+  public send(message: Message, sendDirectly = false) {
     if (message.opcode === 5) {
       switch (message.type) {
-        case 'DISCONNECT_CLIENT':
-          this.disconnect(1000)
+      case 'DISCONNECT_CLIENT':
+        this.disconnect(1000)
       }
 
       return
@@ -108,7 +108,8 @@ class Client extends EventEmitter {
   }
 
   public updateUser(update: IAuthenticationResult) {
-    if (!this.authenticated) throw new Error('This user hasn\'t been authenticated yet')
+    if (!this.authenticated) 
+      throw new Error('This user hasn\'t been authenticated yet')
 
     this.registerAuthentication(null, update)
   }
@@ -150,7 +151,8 @@ class Client extends EventEmitter {
     } else {
       this.heartbeatAttempts += 1
 
-      if (this.heartbeatAttempts > this.heartbeatMaxAttempts) return this.disconnect()
+      if (this.heartbeatAttempts > this.heartbeatMaxAttempts) 
+        return this.disconnect()
       this.send(new Message(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }))
     }
 
@@ -158,23 +160,19 @@ class Client extends EventEmitter {
   }
 
   private registerMessage(data: WebSocket.Data) {
-    let json: IMessage
+    const json: IMessage = JSON.parse(data.toString())
 
-    try {
-      json = JSON.parse(data.toString())
-    } catch (error) {
-      throw error
-    }
-
-    const { op, d, t } = json, message = new Message(op, d, t)
+    const { op, d, t } = json
+    const message = new Message(op, d, t)
 
     if (op === 0 && (this.server.clientConfig.enforceEqualVersions))
       switch (t) {
-        case 'CLIENT_VERSION':
-          const { v } = d
+      case 'CLIENT_VERSION': {
+        const { v } = d
 
-          if (v !== getVersion() && this.server.clientConfig.enforceEqualVersions)
-            return this.disconnect(1002)
+        if (v !== getVersion() && this.server.clientConfig.enforceEqualVersions)
+          return this.disconnect(1002)
+      }
       }
     else if (op === 2 && this.authenticationCheck) {
       this.clientConfig = this.parseAuthenticationConfig(d)
@@ -237,9 +235,9 @@ class Client extends EventEmitter {
   }
 
   private async redeliverUndeliverableMessages() {
-    const namespace = this.clientNamespace('undelivered_messages'),
-          _undeliveredMessages = await this.server.redis.hget(namespace, this.id),
-          messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval
+    const namespace = this.clientNamespace('undelivered_messages')
+    const _undeliveredMessages = await this.server.redis.hget(namespace, this.id)
+    const messageRedeliveryInterval = this.server.syncConfig.redeliveryInterval
 
     let undeliveredMessages: IMessage[] = []
 
@@ -258,10 +256,9 @@ class Client extends EventEmitter {
       return message
     })
 
-    let interval: NodeJS.Timeout,
-        messageIndex = 0
+    let messageIndex = 0
 
-    interval = setInterval(() => {
+    const interval = setInterval(() => {
       const message = messages[messageIndex]
       if (!message)
         return clearInterval(interval)

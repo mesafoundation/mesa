@@ -35,7 +35,8 @@ class Dispatcher {
         this.config = this.parseConfig(config);
     }
     async dispatchMessage(message, _recipients) {
-        const connectedClientsNamespace = this.clientNamespace('connected_clients'), undeliveredMessagesNamespace = this.clientNamespace('undelivered_messages');
+        const connectedClientsNamespace = this.clientNamespace('connected_clients');
+        const undeliveredMessagesNamespace = this.clientNamespace('undelivered_messages');
         let recipients = [];
         if (this.config.sync.enabled)
             for (let i = 0; i < _recipients.length; i++) {

@@ -39,20 +39,20 @@ class Dispatcher {
       recipients = recipients.filter(recipient => excluding.indexOf(recipient) === -1)
 
     switch (event.constructor.name) {
-      case Message.name:
-        this.dispatchMessage(event as Message, recipients)
-        break
-      case DispatchEvent.name:
-        this.dispatchEvent(event as DispatchEvent, recipients)
-        break
-      default:
-        throw new Error('No dispatch handler found')
+    case Message.name:
+      this.dispatchMessage(event as Message, recipients)
+      break
+    case DispatchEvent.name:
+      this.dispatchEvent(event as DispatchEvent, recipients)
+      break
+    default:
+      throw new Error('No dispatch handler found')
     }
   }
 
   private async dispatchMessage(message: Message, _recipients: string[]) {
-    const connectedClientsNamespace = this.clientNamespace('connected_clients'),
-          undeliveredMessagesNamespace = this.clientNamespace('undelivered_messages')
+    const connectedClientsNamespace = this.clientNamespace('connected_clients')
+    const undeliveredMessagesNamespace = this.clientNamespace('undelivered_messages')
 
     let recipients: string[] = []
 

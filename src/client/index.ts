@@ -41,7 +41,7 @@ declare interface Client extends EventEmitter {
 class Client extends EventEmitter {
   public url: string
 
-  public authenticated: boolean = false
+  public authenticated = false
 
   public messages: IMessages
   private config: IClientConfig
@@ -60,15 +60,15 @@ class Client extends EventEmitter {
   private authenticationResolve: (value?: unknown) => void
 
   // Connection Options
-  private isInitialConnection: boolean = true
+  private isInitialConnection = true
   // First connection (not counting force disconnections)
-  private isInitialSessionConnection: boolean = true
+  private isInitialSessionConnection = true
   // First session connection connection (counting force disconnections)
 
-  private isAutomaticReconnection: boolean = false
+  private isAutomaticReconnection = false
 
   // Disconnection Options
-  private didForcefullyDisconnect: boolean = false
+  private didForcefullyDisconnect = false
 
   constructor(url: string, config?: IClientConfig) {
     super()
@@ -123,11 +123,16 @@ class Client extends EventEmitter {
     this.ws.send(message.serialize())
   }
 
-  public authenticate = (data: object, config?: IClientAuthenticationConfig) => new Promise(async (resolve, reject) => {
-    config = this.parseAuthenticationConfig(config)
+  // eslint-disable-next-line no-async-promise-executor
+  public authenticate = <T>(data: T, config?: IClientAuthenticationConfig) => new Promise(async (resolve, reject) => {
+    try {
+      config = this.parseAuthenticationConfig(config)
 
-    this.authenticationResolve = resolve
-    this.send(new Message(2, { ...data, ...config }))
+      this.authenticationResolve = resolve
+      this.send(new Message(2, { ...data, ...config }))
+    } catch(error) {
+      reject(error)
+    }
   })
 
   public disconnect(code?: number, data?: string) {
@@ -159,9 +164,9 @@ class Client extends EventEmitter {
 
   private connectAndSupressWarnings() {
     this.connect()
-      // tslint:disable-next-line: no-empty
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       .then(() => { })
-      // tslint:disable-next-line: no-empty
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       .catch(() => { })
   }
 
@@ -197,50 +202,50 @@ class Client extends EventEmitter {
       return console.error(error)
     }
 
-    const { op, d, t, s } = json,
-        message = new Message(op, d, t)
+    const { op, d, t, s } = json
+    const message = new Message(op, d, t)
 
     if (s)
       message.sequence = s
 
     switch (message.opcode) {
-      case 1:
-        return this.send(new Message(11, {}))
-      case 10:
-        const {
-          c_heartbeat_interval,
-          c_reconnect_interval,
-          c_authentication_timeout,
-          rules
-        } = message.data as IClientConnectionConfig
+    case 1:
+      return this.send(new Message(11, {}))
+    case 10: {
+      const {
+        c_heartbeat_interval,
+        c_reconnect_interval,
+        c_authentication_timeout,
+        rules
+      } = message.data as IClientConnectionConfig
 
-        if (c_heartbeat_interval)
-          this.heartbeatIntervalTime = c_heartbeat_interval
+      if (c_heartbeat_interval)
+        this.heartbeatIntervalTime = c_heartbeat_interval
 
-        if (c_reconnect_interval)
-          this.reconnectionIntervalTime = c_reconnect_interval
+      if (c_reconnect_interval)
+        this.reconnectionIntervalTime = c_reconnect_interval
 
-        if (c_authentication_timeout)
-          this.authenticationTimeout = c_authentication_timeout
+      if (c_authentication_timeout)
+        this.authenticationTimeout = c_authentication_timeout
 
-        if (rules.indexOf('enforce_equal_versions') > -1)
-          this.send(
-            new Message(0, { v: getVersion() }, 'CLIENT_VERSION')
-          )
+      if (rules.indexOf('enforce_equal_versions') > -1)
+        this.send(
+          new Message(0, { v: getVersion() }, 'CLIENT_VERSION')
+        )
 
-        if (rules.indexOf('store_messages') > -1)
-          this.messages = { sent: [], recieved: [] }
+      if (rules.indexOf('store_messages') > -1)
+        this.messages = { sent: [], recieved: [] }
 
-        this.rules = rules
+      this.rules = rules
 
-        return
-      case 22:
-        this.authenticated = true
+      return
+    } case 22:
+      this.authenticated = true
 
-        if (this.rules.indexOf('sends_user_object') > -1 && this.authenticationResolve)
-          this.authenticationResolve(d)
+      if (this.rules.indexOf('sends_user_object') > -1 && this.authenticationResolve)
+        this.authenticationResolve(d)
 
-        return
+      return
     }
 
     this.emit('message', message)
