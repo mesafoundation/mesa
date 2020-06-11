@@ -55,15 +55,15 @@ describe('server', () => {
 })
 
 describe('message', () => {
-	describe('constructor', () => {
-		it('properly unpacks a message', () => {
-			const message = new Message(0, { x: 0, y: '1' }, 'TEST')
+  describe('constructor', () => {
+    it('properly unpacks a message', () => {
+      const message = new Message(0, { x: 0, y: '1' }, 'TEST')
 
-			expect(message.opcode).toBe(0)
-			expect(message.data).toStrictEqual({ x: 0, y: '1' })
-			expect(message.type).toBe('TEST')
-		})
-	})
+      expect(message.opcode).toBe(0)
+      expect(message.data).toStrictEqual({ x: 0, y: '1' })
+      expect(message.type).toBe('TEST')
+    })
+  })
 
   describe('serialization', () => {
     it('properly serializes a message to json', () => {
