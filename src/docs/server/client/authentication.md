@@ -3,10 +3,10 @@ Mesa supports client authentication through a simple API that can adapt to suppo
 
 *Note: currently authentication requires [Pub/Sub](./pubsub.md) to be enabled on your server.*
 
-If you learn better from examples, click [here](#example).
+If you learn better from examples, click [here](#example)
 
 ## How-To
-When a client connects to your server, call the `client.authenticate` method to setup a handler for when your client wants to authenticate itself against your server.
+When a client connects to your server, call the `client.authenticate` method to setup a handler for when your client wants to authenticate itself against your server
 
 ### Authenticate Method
 `client.authenticate` takes in a single method with two parameters: a data and a callback method:
@@ -29,14 +29,14 @@ done(error, user)
 
 The `error` parameter should contain an `Error` object in the case that something went wrong authenticating your client, or if your client couldn't be authenticated for whatever reason.
 
-If there was no error, simply pass in `null` to this parameter.
+If there was no error, simply pass in `null` to this parameter
 
 #### User Object
 The `user` parameter should contain an object with a structure like this:
 ```json
 {
   "id": "user_id",
-  "user": user_object
+  "user": {}
 }
 ```
 
@@ -52,8 +52,7 @@ The `user` property should be your user object. This is optional, but if you cho
 That's it! Hopefully the Mesa authentication API is able to fit and adapt to your needs. If you have any issues, open up a GitHub issue or contact a maintainer
 
 ## Example
-The following example uses the `jsonwebtoken` and `monk` libraries to authenticate connecting clients.
-
+The following example uses the `jsonwebtoken` and `monk` libraries to authenticate connecting clients:
 ```ts
 import { Mesa } from '@cryb/mesa'
 

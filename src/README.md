@@ -62,8 +62,6 @@ mesa.on('connection', client => {
 })
 ```
 
-From here, everything should be fairly self explanatory
-
 ### Guides
 We supply a number of guides for fully utilising Mesa server:
 
@@ -86,7 +84,7 @@ We supply a number of guides for fully utilising Mesa server:
   * Send messages to clients from anywhere in your codebase
 
 ### Client Side
-We currently provide client libraries for Node-based JavaScript. For a browser-based client library, see [mesa-js-client](https://github.com/neoncloth/mesa-js-client).
+*Note: we currently provide client libraries for Node-based JavaScript. For a browser-based client library, see [mesa-js-client](https://github.com/neoncloth/mesa-js-client).*
 
 Import the Client export from the library as you would with any other Node package:
 ```js
@@ -99,7 +97,7 @@ To connect to a Mesa server, simply write:
 ```js
 const client = new Client('ws://localhost:4000')
 ```
-*Note: the URL provided needs to be the standard WebSocket connection URI for your Mesa server*
+*Note: the URL provided needs to be the standard WebSocket connection URI for your Mesa server.*
 
 We provide expansive configuration support for customising the Mesa client to your needs. See [Client Configuration](src/docs/client/configuration.md) for options.
 
@@ -128,8 +126,12 @@ We supply a number of guides for fully utilising Mesa client:
 * [Authentication](src/docs/client/authentication.md)
   * Authenticate clients against your Mesa server
 
-## Client Libraries
-View our guidance on client libraries [here](/src/docs/client-libraries.md)
+## Extras
+* [Client Libraries](/src/docs/client-libraries.md)
+  * Our guidance on using available client libraries or creating your own
+
+## License
+MIT
 
 ## Questions / Issues
 If you have an issues with `@cryb/mesa`, please either open a GitHub issue, contact a maintainer or join the [Cryb Discord Server](https://discord.gg/ShTATH4) and ask in #tech-support
