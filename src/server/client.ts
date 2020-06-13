@@ -35,7 +35,7 @@ interface IClientAdditional {
 }
 
 type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void
-type AuthenticationDoneCallback = (error: Error, user?: IAuthenticationResult) => void
+type AuthenticationDoneCallback = (error: Error | null, user?: IAuthenticationResult) => void
 
 // tslint:disable-next-line: interface-name
 declare interface Client extends EventEmitter {
