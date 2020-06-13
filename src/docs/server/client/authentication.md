@@ -1,7 +1,7 @@
 # Authentication
 Mesa supports client authentication through a simple API that can adapt to support your authentication infrastructure.
 
-*Note: currently authentication requires [Pub/Sub](./pubsub.md) to be enabled on your server.*
+Currently authentication requires [Pub/Sub](./pubsub.md) to be enabled on your server. In the future we'll add support for authentication without Pub/Sub enabled.
 
 If you learn better from examples, click [here](#example)
 

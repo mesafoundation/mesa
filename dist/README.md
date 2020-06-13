@@ -127,6 +127,8 @@ We supply a number of guides for fully utilising Mesa client:
   * Authenticate clients against your Mesa server
 
 ## Extras
+* [Gateway Server](https://github.com/neoncloth/mega)
+  * Mega is a gateway server utilising Mesa that can be configured via environment variables
 * [Client Libraries](/src/docs/client-libraries.md)
   * Our guidance on using available client libraries or creating your own
 
