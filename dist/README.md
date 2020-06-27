@@ -510,6 +510,9 @@ Mesa's Server component allows for the following configuration to be passed in d
 {
   // Optional: port that Mesa should listen on. Defaults to 4000
   port: number
+  // Optional: path that Mesa should listen on.
+  path: string
+  
   // Optional: namespace for Redis events. If you have multiple Mesa instances running on a cluster, you should use this
   namespace: string
 

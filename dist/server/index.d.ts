@@ -39,6 +39,7 @@ export interface IAuthenticationConfig {
 }
 interface IServerConfig {
     port?: number;
+    path?: string;
     namespace?: string;
     redis?: RedisConfig;
     server?: http.Server | https.Server;
@@ -59,6 +60,7 @@ declare class Server extends EventEmitter {
     wss: WebSocket.Server;
     clients: Client[];
     port: number;
+    path: string;
     namespace: string;
     redis: Redis.Redis;
     publisher: Redis.Redis;

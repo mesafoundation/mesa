@@ -7,6 +7,8 @@ const { default: Mesa, Message } = require('../dist')
 
 const mesa = new Mesa({
   port: 4000,
+  path: '/ws',
+  
   namespace: 'example'
 })
 

@@ -90,6 +90,8 @@ class Server extends events_1.EventEmitter {
             options.server = config.server;
         else
             options.port = config.port;
+        if (config.path)
+            options.path = config.path;
         this.wss = new ws_1.default.Server(options);
         this.wss.on('connection', (socket, req) => this.registerConnection(socket, req));
     }
@@ -98,6 +100,8 @@ class Server extends events_1.EventEmitter {
         if (!config.port)
             config.port = 4000;
         this.port = config.port;
+        if (config.path)
+            this.path = config.path;
         if (config.namespace)
             this.namespace = config.namespace;
         if (config.redis)
