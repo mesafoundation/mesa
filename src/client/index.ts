@@ -239,13 +239,15 @@ class Client extends EventEmitter {
       this.rules = rules
 
       return
-    } case 22:
+    }
+    case 22: {
       this.authenticated = true
 
-      if (this.rules.indexOf('sends_user_object') > -1 && this.authenticationResolve)
+      if (this.authenticationResolve)
         this.authenticationResolve(d)
 
       return
+    }
     }
 
     this.emit('message', message)
