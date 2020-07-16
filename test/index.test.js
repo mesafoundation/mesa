@@ -38,6 +38,14 @@ describe('server', () => {
       server.on('connection', () => server.wss.close(done))
     })
 
+    it('starts on a given path', done => {
+      const port = 2102
+      const server = new Mesa({ port, path: '/ws' })
+      const client = new Client(`ws://localhost:${port}/ws`)
+
+      server.on('connection', () => server.wss.close(done))
+    })
+
     it('uses a pre-existing http server', done => {
       const server = http.createServer()
 

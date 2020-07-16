@@ -9,7 +9,7 @@
 const { Client, Message } = require('../dist')
 const { default: uuid } = require('../dist/utils/uuid.util')
 
-const client = new Client('ws://localhost:4000')
+const client = new Client('ws://localhost:4000/ws')
 
 client.on('connected', async () => {
   console.log('Connected to Mesa')

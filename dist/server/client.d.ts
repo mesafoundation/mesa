@@ -23,7 +23,7 @@ interface IClientAdditional {
     req?: http.IncomingMessage;
 }
 declare type AuthenticationCallback = (data: any, done: AuthenticationDoneCallback) => void;
-declare type AuthenticationDoneCallback = (error: Error, user?: IAuthenticationResult) => void;
+declare type AuthenticationDoneCallback = (error: Error | null, user?: IAuthenticationResult) => void;
 declare interface Client extends EventEmitter {
     on(event: 'message', listener: (this: Server, message: Message) => void): this;
     on(event: 'disconnect', listener: (this: Server, code: number, reason: string) => void): this;

@@ -58,6 +58,8 @@ export interface IAuthenticationConfig {
 
 interface IServerConfig {
   port?: number
+  path?: string
+
   namespace?: string
 
   redis?: RedisConfig
@@ -85,6 +87,8 @@ class Server extends EventEmitter {
   public clients: Client[] = []
 
   public port: number
+  public path: string
+  
   public namespace: string
 
   public redis: Redis.Redis
@@ -203,6 +207,9 @@ class Server extends EventEmitter {
     else
       options.port = config.port
 
+    if (config.path)
+      options.path = config.path
+
     this.wss = new WebSocket.Server(options)
     this.wss.on('connection', (socket, req) => this.registerConnection(socket, req))
   }
@@ -214,6 +221,9 @@ class Server extends EventEmitter {
       config.port = 4000
 
     this.port = config.port
+
+    if (config.path)
+      this.path = config.path
 
     if (config.namespace)
       this.namespace = config.namespace
