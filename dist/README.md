@@ -70,6 +70,22 @@ mesa.send(new Message(0, { userId: '1', status: 'online' }, 'STATUS_UPDATE'), ['
 client.send(new Message(0, {}, 'LOGOUT'))
 ```
 
+It's your call on how you wish to handle messages, but we recommend using a switch statement based on the type:
+```js
+client.on('message', message => {
+  const { data, type } = message
+
+  switch(type) {
+    case 'STATUS_UPDATE':
+    handleStatusUpdate(data.status, client.id)
+    break
+    case 'TYPING_STATUS':
+    setUserTyping(data.typing, client.id)
+    break
+  }
+})
+````
+
 ### Guides
 We supply a number of guides for fully utilising Mesa server:
 
@@ -132,6 +148,8 @@ Sending messages to the server works the same way as sending messages to clients
 ```js
 client.send(new Message(0, { status: 'online' }, 'STATUS_UPDATE'))
 ```
+
+Handling messages is identical to how messages are handled on the server, so again it's your choice on how you choose to implement this
 
 ### Guides
 We supply a number of guides for fully utilising Mesa client:
