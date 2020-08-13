@@ -109,7 +109,7 @@ We supply a number of guides for fully utilising Mesa server:
 
 #### Middleware
 * [Using Middleware](src/docs/server/middleware/using.md)
-  * Extend your Mesa server with 
+  * Extend your Mesa server with new functionality and minimal effort
 * [Creating Middleware](src/docs/server/middleware/creating.md)
   * Create powerful middleware handlers to hook into Mesa's event system
 
