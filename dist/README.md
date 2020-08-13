@@ -1,9 +1,4 @@
-<!-- ![Cryb OSS](.github/cryb.png "Cryb OSS Logo") -->
-
-<!-- _**Mesa** — Robust, reliable WebSockets_ -->
 # Mesa
-<!-- [![GitHub contributors](https://img.shields.io/github/contributors/crybapp/mesa)](https://github.com/crybapp/mesa/graphs/contributors) [![License](https://img.shields.io/github/license/crybapp/mesa)](https://github.com/crybapp/mesa/blob/master/LICENSE) [![Patreon Donate](https://img.shields.io/badge/donate-Patreon-red.svg)](https://patreon.com/cryb) -->
-
 Mesa is a WebSocket library that provides extra features such as heartbeats, automatic reconnection handling and Pub/Sub support.
 
 [ws](https://www.npmjs.com/package/ws), which Mesa wraps, on its own usually isn't enough. It doesn't provide features out of the box required by modern applications which means many users either stick to [Socket.IO](https://socket.io) or write their own implementations around the `ws` package. Mesa was extracted from the WebSocket implementation in `@cryb/api` after we wanted to add robust WebSocket capabilities to other services.
@@ -62,6 +57,19 @@ mesa.on('connection', client => {
 })
 ```
 
+Sending messages to clients or globally is easy. Simply import `Message` from Mesa and use the following API:
+```js
+// Sending globally
+mesa.send(new Message(0, { disabled: true }, 'MANIFEST_UPDATE'))
+
+// You can also limit to certain authenticated client ids
+mesa.send(new Message(0, { content: 'Hey!' }, 'NEW_MESSAGE'), ['0', '1', '2']) // Only send to connected clients with id 0, 1, 2
+mesa.send(new Message(0, { userId: '1', status: 'online' }, 'STATUS_UPDATE'), ['*'], ['1']) // Send to all connected clients except client with id 1
+
+// Sending to clients
+client.send(new Message(0, {}, 'LOGOUT'))
+```
+
 ### Guides
 We supply a number of guides for fully utilising Mesa server:
 
@@ -118,6 +126,11 @@ client.on('message', message => {
 client.on('disconnected', (code, reason) => {
   console.log('Client disconnected')
 })
+```
+
+Sending messages to the server works the same way as sending messages to clients from Mesa:
+```js
+client.send(new Message(0, { status: 'online' }, 'STATUS_UPDATE'))
 ```
 
 ### Guides
