@@ -4,7 +4,7 @@ Mesa Pub/Sub allows you to run multiple instances of your Mesa server while allo
 Pub/Sub relies on Redis to forward messages, so you'll need a Redis instance to enable this feature. We support Redis Sentinels for high availability production environments too.
 
 To enable pub/sub, simply supply your Redis URI in your Mesa config:
-```ts
+```js
 const mesa = new Mesa({
   port: 4000,
   redis: 'redis://localhost:6379'

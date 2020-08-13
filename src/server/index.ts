@@ -427,6 +427,10 @@ class Server extends EventEmitter {
     return this.namespace ? `${prefix}_${this.namespace}` : prefix
   }
 
+  public getMiddlewareNamespace(prefix: string, name: string) {
+    return this.namespace ? `${prefix}_mw-${name}_${this.namespace}` : prefix
+  }
+
   private get portalPubSubNamespace() {
     return this.getNamespace('portal')
   }

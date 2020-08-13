@@ -98,6 +98,7 @@ declare class Server extends EventEmitter {
     private handleUndeliverableMessage;
     private fetchClientConfig;
     private getNamespace;
+    getMiddlewareNamespace(prefix: string, name: string): string;
     private get portalPubSubNamespace();
     private get availablePortalsNamespace();
     private get connectedClientsCountNamespace();

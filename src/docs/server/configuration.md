@@ -1,6 +1,6 @@
 # Configuration
 Mesa's Server component allows for the following configuration to be passed in during initialization:
-```ts
+```
 {
   // Optional: port that Mesa should listen on. Defaults to 4000
   port: number

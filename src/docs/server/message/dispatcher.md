@@ -15,7 +15,7 @@ const dispatcher = new Dispatcher('redis://localhost:6379')
 ```
 
 We provide expansive configuration support for customising Dispatcher to your needs. Here's a rundown of options we provide:
-```ts
+```
 {
   // Optional: namespace for Redis events. This should match the namespace on the Mesa server you're targetting if that Mesa server has a namespace
   namespace?: string

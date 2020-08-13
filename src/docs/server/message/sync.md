@@ -24,7 +24,7 @@ Now any time a message is sent to an offline client, either using `Mesa.send` or
 
 ## Implementing a Custom Sync Interval
 If you want to implement a custom interval between message redelivery after connection, use the following configuration on the Mesa server:
-```js
+```
 sync: {
   enabled: true,
 
