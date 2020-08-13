@@ -184,6 +184,7 @@ class Client extends EventEmitter {
     this.emit('message', message)
     this.server.emit('message', message)
     this.server.sendPortalableMessage(message, this)
+    this.server.handleMiddlewareEvent('onMessage', message, this)
 
     if (this.server.serverOptions.storeMessages)
       this.messages.recieved.push(message)
@@ -219,6 +220,8 @@ class Client extends EventEmitter {
 
     this.authenticated = true
     this.server.registerAuthentication(this)
+
+    this.server.handleMiddlewareEvent('onAuthenticated', this)
   }
 
   private registerDisconnection(code: number, reason?: string) {
@@ -230,6 +233,7 @@ class Client extends EventEmitter {
 
     this.emit('disconnect', code, reason)
     this.server.emit('disconnection', code, reason)
+    this.server.handleMiddlewareEvent('onDisconnection', this, code, reason)
 
     this.server.registerDisconnection(this)
   }
@@ -267,6 +271,8 @@ class Client extends EventEmitter {
 
       messageIndex += 1
     }, messageRedeliveryInterval || 0)
+
+    this.server.handleMiddlewareEvent('onRedeliverUndeliverableMessages', messageIndex - 1, this)
 
     this.clearUndeliveredMessages()
   }

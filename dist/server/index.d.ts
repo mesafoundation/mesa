@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import WebSocket from 'ws';
 import Client from './client';
 import Message from './message';
+import Middleware, { MiddlewareEvent } from '../middleware/defs';
 export declare type RedisConfig = string | Redis.RedisOptions;
 export interface IClientConfig {
     enforceEqualVersions?: boolean;
@@ -74,13 +75,17 @@ declare class Server extends EventEmitter {
     authenticationConfig: IAuthenticationConfig;
     private portals;
     private portalIndex;
+    private middlewareHandlers;
     constructor(config?: IServerConfig);
     send(message: Message, _recipients?: string[], excluding?: string[]): Promise<number | void>;
+    use(middleware: Middleware): void;
+    handleMiddlewareEvent(type: MiddlewareEvent, ...args: any[]): void;
     registerAuthentication(client: Client): void;
+    get hasMiddleware(): boolean;
     registerDisconnection(disconnectingClient: Client): void;
     close(): void;
     sendPortalableMessage(_message: Message, client: Client): void;
-    pubSubNamespace(): string;
+    get pubSubNamespace(): string;
     private setup;
     private parseConfig;
     private _send;
@@ -93,7 +98,8 @@ declare class Server extends EventEmitter {
     private handleUndeliverableMessage;
     private fetchClientConfig;
     private getNamespace;
-    private portalPubSubNamespace;
-    private availablePortalsNamespace;
+    private get portalPubSubNamespace();
+    private get availablePortalsNamespace();
+    private get connectedClientsCountNamespace();
 }
 export default Server;

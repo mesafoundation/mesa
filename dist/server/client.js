@@ -104,6 +104,7 @@ class Client extends events_1.EventEmitter {
         this.emit('message', message);
         this.server.emit('message', message);
         this.server.sendPortalableMessage(message, this);
+        this.server.handleMiddlewareEvent('onMessage', message, this);
         if (this.server.serverOptions.storeMessages)
             this.messages.recieved.push(message);
     }
@@ -130,6 +131,7 @@ class Client extends events_1.EventEmitter {
             this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}));
         this.authenticated = true;
         this.server.registerAuthentication(this);
+        this.server.handleMiddlewareEvent('onAuthenticated', this);
     }
     registerDisconnection(code, reason) {
         if (this.heartbeatInterval)
@@ -138,6 +140,7 @@ class Client extends events_1.EventEmitter {
             this.server.redis.srem(this.clientNamespace('connected_clients'), this.id);
         this.emit('disconnect', code, reason);
         this.server.emit('disconnection', code, reason);
+        this.server.handleMiddlewareEvent('onDisconnection', this, code, reason);
         this.server.registerDisconnection(this);
     }
     async redeliverUndeliverableMessages() {
@@ -164,6 +167,7 @@ class Client extends events_1.EventEmitter {
             this.send(message, true);
             messageIndex += 1;
         }, messageRedeliveryInterval || 0);
+        this.server.handleMiddlewareEvent('onRedeliverUndeliverableMessages', messageIndex - 1, this);
         this.clearUndeliveredMessages();
     }
     async clearUndeliveredMessages() {

@@ -7,6 +7,7 @@ import WebSocket, { ServerOptions as WSOptions } from 'ws'
 
 import Client, { IClientConnectionConfig, Rule } from './client'
 import Message, { IInternalMessage, IMessage } from './message'
+import Middleware, { MiddlewareEvent, MiddlewareHandler, MiddlewareNondescriptHandler } from '../middleware/defs'
 
 import { IPortalInternalMessage, IPortalUpdate } from '../portal/defs'
 
@@ -107,6 +108,8 @@ class Server extends EventEmitter {
   private portals: string[] = []
   private portalIndex = 0
 
+  private middlewareHandlers: MiddlewareHandler[] = []
+
   constructor(config?: IServerConfig) {
     super()
 
@@ -136,7 +139,7 @@ class Server extends EventEmitter {
         }
 
       if (onlineRecipients.length > 0)
-        this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
+        this.publisher.publish(this.pubSubNamespace, JSON.stringify({
           message: message.serialize(true, { sentByServer: true, sentInternally: true }),
           recipients: onlineRecipients
         } as IInternalMessage))
@@ -148,7 +151,7 @@ class Server extends EventEmitter {
     }
 
     if (this.redis)
-      return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
+      return this.publisher.publish(this.pubSubNamespace, JSON.stringify({
         message: message.serialize(true, { sentByServer: true, sentInternally: true }),
         recipients: _recipients || ['*']
       } as IInternalMessage))
@@ -159,11 +162,34 @@ class Server extends EventEmitter {
     }
   }
 
+  public use(middleware: Middleware) {
+    const configured = middleware(this)
+
+    this.middlewareHandlers.push(configured)
+  }
+
+  public handleMiddlewareEvent(type: MiddlewareEvent, ...args: any[]) {
+    if(!this.hasMiddleware)
+      return
+
+    this.middlewareHandlers.forEach(handler => {
+      const eventHandler = handler[type] as MiddlewareNondescriptHandler
+      if(!eventHandler)
+        return
+
+      eventHandler(...args)
+    })
+  }
+
   public registerAuthentication(client: Client) {
     this.sendInternalPortalMessage({
       type: 'authentication',
       clientId: client.id
     })
+  }
+
+  public get hasMiddleware() {
+    return this.middlewareHandlers.length > 0
   }
 
   public registerDisconnection(disconnectingClient: Client) {
@@ -174,6 +200,9 @@ class Server extends EventEmitter {
       type: 'disconnection',
       clientId: disconnectingClient.id
     })
+
+    if(this.redis)
+      this.redis.decr(this.connectedClientsCountNamespace)
   }
 
   public close() {
@@ -192,7 +221,7 @@ class Server extends EventEmitter {
     this.sendInternalPortalMessage(message)
   }
 
-  public pubSubNamespace() {
+  public get pubSubNamespace() {
     return this.getNamespace('ws')
   }
 
@@ -271,8 +300,8 @@ class Server extends EventEmitter {
 
     this.loadInitialState()
 
-    const pubSubNamespace = this.pubSubNamespace()
-    const availablePortalsNamespace = this.availablePortalsNamespace()
+    const pubSubNamespace = this.pubSubNamespace
+    const availablePortalsNamespace = this.availablePortalsNamespace
 
     subscriber.on('message', async (channel, data) => {
       let json
@@ -315,7 +344,7 @@ class Server extends EventEmitter {
     } else
       chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)]
 
-    this.publisher.publish(this.portalPubSubNamespace(), JSON.stringify({
+    this.publisher.publish(this.portalPubSubNamespace, JSON.stringify({
       ...internalMessage,
       portalId: chosenPortal
     }))
@@ -323,7 +352,7 @@ class Server extends EventEmitter {
 
   // State Management
   private async loadInitialState() {
-    this.portals = await this.redis.smembers(this.availablePortalsNamespace())
+    this.portals = await this.redis.smembers(this.availablePortalsNamespace)
   }
 
   private handlePortalUpdate(update: IPortalUpdate) {
@@ -349,6 +378,11 @@ class Server extends EventEmitter {
     this.sendInternalPortalMessage({
       type: 'connection'
     })
+
+    this.handleMiddlewareEvent('onConnection', this)
+
+    if(this.redis)
+      this.redis.incr(this.connectedClientsCountNamespace)
   }
 
   private handleInternalMessage(internalMessage: IInternalMessage) {
@@ -393,12 +427,16 @@ class Server extends EventEmitter {
     return this.namespace ? `${prefix}_${this.namespace}` : prefix
   }
 
-  private portalPubSubNamespace() {
+  private get portalPubSubNamespace() {
     return this.getNamespace('portal')
   }
 
-  private availablePortalsNamespace() {
+  private get availablePortalsNamespace() {
     return this.getNamespace('available_portals_pool')
+  }
+
+  private get connectedClientsCountNamespace() {
+    return this.getNamespace('connected_clients_count')
   }
 }
 

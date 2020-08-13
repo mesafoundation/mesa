@@ -24,8 +24,8 @@ declare class Portal extends EventEmitter {
     private setupCloseHandler;
     private publishReadyState;
     private clientNamespace;
-    private portalPubSubNamespace;
-    private availablePortalsNamespace;
+    private get portalPubSubNamespace();
+    private get availablePortalsNamespace();
     private log;
     private parseConfig;
 }

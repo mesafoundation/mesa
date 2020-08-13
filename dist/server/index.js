@@ -16,6 +16,7 @@ class Server extends events_1.EventEmitter {
         this.clients = [];
         this.portals = [];
         this.portalIndex = 0;
+        this.middlewareHandlers = [];
         config = this.parseConfig(config);
         this.setup(config);
     }
@@ -35,7 +36,7 @@ class Server extends events_1.EventEmitter {
                     (isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient);
                 }
             if (onlineRecipients.length > 0)
-                this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
+                this.publisher.publish(this.pubSubNamespace, JSON.stringify({
                     message: message.serialize(true, { sentByServer: true, sentInternally: true }),
                     recipients: onlineRecipients
                 }));
@@ -44,7 +45,7 @@ class Server extends events_1.EventEmitter {
             return;
         }
         if (this.redis)
-            return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
+            return this.publisher.publish(this.pubSubNamespace, JSON.stringify({
                 message: message.serialize(true, { sentByServer: true, sentInternally: true }),
                 recipients: _recipients || ['*']
             }));
@@ -53,11 +54,28 @@ class Server extends events_1.EventEmitter {
             this._send(message, recipients);
         }
     }
+    use(middleware) {
+        const configured = middleware(this);
+        this.middlewareHandlers.push(configured);
+    }
+    handleMiddlewareEvent(type, ...args) {
+        if (!this.hasMiddleware)
+            return;
+        this.middlewareHandlers.forEach(handler => {
+            const eventHandler = handler[type];
+            if (!eventHandler)
+                return;
+            eventHandler(...args);
+        });
+    }
     registerAuthentication(client) {
         this.sendInternalPortalMessage({
             type: 'authentication',
             clientId: client.id
         });
+    }
+    get hasMiddleware() {
+        return this.middlewareHandlers.length > 0;
     }
     registerDisconnection(disconnectingClient) {
         const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId);
@@ -66,6 +84,8 @@ class Server extends events_1.EventEmitter {
             type: 'disconnection',
             clientId: disconnectingClient.id
         });
+        if (this.redis)
+            this.redis.decr(this.connectedClientsCountNamespace);
     }
     close() {
         this.wss.close();
@@ -79,7 +99,7 @@ class Server extends events_1.EventEmitter {
             message.clientId = client.id;
         this.sendInternalPortalMessage(message);
     }
-    pubSubNamespace() {
+    get pubSubNamespace() {
         return this.getNamespace('ws');
     }
     setup(config) {
@@ -135,8 +155,8 @@ class Server extends events_1.EventEmitter {
         this.publisher = publisher;
         this.subscriber = subscriber;
         this.loadInitialState();
-        const pubSubNamespace = this.pubSubNamespace();
-        const availablePortalsNamespace = this.availablePortalsNamespace();
+        const pubSubNamespace = this.pubSubNamespace;
+        const availablePortalsNamespace = this.availablePortalsNamespace;
         subscriber.on('message', async (channel, data) => {
             let json;
             try {
@@ -172,11 +192,11 @@ class Server extends events_1.EventEmitter {
         }
         else
             chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)];
-        this.publisher.publish(this.portalPubSubNamespace(), JSON.stringify(Object.assign(Object.assign({}, internalMessage), { portalId: chosenPortal })));
+        this.publisher.publish(this.portalPubSubNamespace, JSON.stringify(Object.assign(Object.assign({}, internalMessage), { portalId: chosenPortal })));
     }
     // State Management
     async loadInitialState() {
-        this.portals = await this.redis.smembers(this.availablePortalsNamespace());
+        this.portals = await this.redis.smembers(this.availablePortalsNamespace);
     }
     handlePortalUpdate(update) {
         const { id, ready } = update;
@@ -196,6 +216,9 @@ class Server extends events_1.EventEmitter {
         this.sendInternalPortalMessage({
             type: 'connection'
         });
+        this.handleMiddlewareEvent('onConnection', this);
+        if (this.redis)
+            this.redis.incr(this.connectedClientsCountNamespace);
     }
     handleInternalMessage(internalMessage) {
         const { message: _message, recipients: _recipients } = internalMessage;
@@ -227,11 +250,14 @@ class Server extends events_1.EventEmitter {
     getNamespace(prefix) {
         return this.namespace ? `${prefix}_${this.namespace}` : prefix;
     }
-    portalPubSubNamespace() {
+    get portalPubSubNamespace() {
         return this.getNamespace('portal');
     }
-    availablePortalsNamespace() {
+    get availablePortalsNamespace() {
         return this.getNamespace('available_portals_pool');
+    }
+    get connectedClientsCountNamespace() {
+        return this.getNamespace('connected_clients_count');
     }
 }
 exports.default = Server;

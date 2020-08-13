@@ -55,7 +55,7 @@ class Portal extends events_1.EventEmitter {
                 case 'disconnection':
                     return this.handleSocketUpdate(type, clientId);
             }
-        }).subscribe(this.portalPubSubNamespace());
+        }).subscribe(this.portalPubSubNamespace);
     }
     handleSocketUpdate(type, clientId) {
         this.emit(type, clientId);
@@ -68,19 +68,19 @@ class Portal extends events_1.EventEmitter {
     registerPortal() {
         this.log('publishing portal id', this.id);
         this.publishReadyState(true);
-        this.redis.sadd(this.availablePortalsNamespace(), this.id);
+        this.redis.sadd(this.availablePortalsNamespace, this.id);
         this.log('published! ready to recieve updates on namespace', this.config.namespace);
     }
     setupCloseHandler() {
         death_1.default((signal, err) => {
             this.log('shutting down...');
             this.publishReadyState(false);
-            this.redis.srem(this.availablePortalsNamespace(), this.id);
+            this.redis.srem(this.availablePortalsNamespace, this.id);
             process.exit(0);
         });
     }
     publishReadyState(readyState) {
-        this.publisher.publish(this.availablePortalsNamespace(), JSON.stringify({
+        this.publisher.publish(this.availablePortalsNamespace, JSON.stringify({
             id: this.id,
             ready: readyState
         }));
@@ -88,10 +88,10 @@ class Portal extends events_1.EventEmitter {
     clientNamespace(prefix) {
         return this.config.namespace ? `${prefix}_${this.config.namespace}` : prefix;
     }
-    portalPubSubNamespace() {
+    get portalPubSubNamespace() {
         return this.clientNamespace('portal');
     }
-    availablePortalsNamespace() {
+    get availablePortalsNamespace() {
         return this.clientNamespace('available_portals_pool');
     }
     log(...messages) {

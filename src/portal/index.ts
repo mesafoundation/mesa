@@ -77,7 +77,7 @@ class Portal extends EventEmitter {
       case 'disconnection':
         return this.handleSocketUpdate(type, clientId)
       }
-    }).subscribe(this.portalPubSubNamespace())
+    }).subscribe(this.portalPubSubNamespace)
   }
 
   private handleSocketUpdate(type: PortalInternalSocketType, clientId?: string) {
@@ -95,7 +95,7 @@ class Portal extends EventEmitter {
     this.log('publishing portal id', this.id)
 
     this.publishReadyState(true)
-    this.redis.sadd(this.availablePortalsNamespace(), this.id)
+    this.redis.sadd(this.availablePortalsNamespace, this.id)
 
     this.log('published! ready to recieve updates on namespace', this.config.namespace)
   }
@@ -105,14 +105,14 @@ class Portal extends EventEmitter {
       this.log('shutting down...')
 
       this.publishReadyState(false)
-      this.redis.srem(this.availablePortalsNamespace(), this.id)
+      this.redis.srem(this.availablePortalsNamespace, this.id)
 
       process.exit(0)
     })
   }
 
   private publishReadyState(readyState: boolean) {
-    this.publisher.publish(this.availablePortalsNamespace(), JSON.stringify({
+    this.publisher.publish(this.availablePortalsNamespace, JSON.stringify({
       id: this.id,
       ready: readyState
     }))
@@ -122,11 +122,11 @@ class Portal extends EventEmitter {
     return this.config.namespace ? `${prefix}_${this.config.namespace}` : prefix
   }
 
-  private portalPubSubNamespace() {
+  private get portalPubSubNamespace() {
     return this.clientNamespace('portal')
   }
 
-  private availablePortalsNamespace() {
+  private get availablePortalsNamespace() {
     return this.clientNamespace('available_portals_pool')
   }
 
