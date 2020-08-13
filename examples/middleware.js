@@ -12,7 +12,7 @@ const mesa = new Mesa({
   namespace: 'middleware'
 })
 
-function logger(server) {
+function Logger(server) {
   return {
     onConnection: client => console.log('Client connected!'),
     onDisconnection: (client, code, reason) => console.log('Client disconnected :(', code, reason),
@@ -22,7 +22,20 @@ function logger(server) {
   }
 }
 
-mesa.use(logger)
+function PromClient(config) {
+  return server => {
+    console.log(`Prometheus client middleware registered with path ${config.path}`)
+
+    return {
+      onConnection: client => {
+        console.log('Client connected!')
+      }
+    }
+  }
+}
+
+mesa.use(Logger)
+mesa.use(PromClient({ path: '/metrics' }))
 
 mesa.on('connection', client => {
   client.authenticate(async ({ id }, done) => {
