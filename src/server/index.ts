@@ -227,17 +227,20 @@ class Server extends EventEmitter {
     this.middlewareHandlers.push(configured)
   }
 
-  public handleMiddlewareEvent(type: MiddlewareEvent, ...args: any[]) {
+  public async handleMiddlewareEvent(type: MiddlewareEvent, ...args: any[]) {
     if(!this.hasMiddleware)
       return
 
-    this.middlewareHandlers.forEach(handler => {
+    for(let i = 0; i < this.middlewareHandlers.length; i++) {
+      const handler = this.middlewareHandlers[i]
       const eventHandler = handler[type] as MiddlewareNondescriptHandler
       if(!eventHandler)
-        return
+        continue
 
-      eventHandler(...args)
-    })
+      try {
+        await eventHandler(...args)
+      } catch(error) {}
+    }
   }
 
   public registerAuthentication(client: Client) {

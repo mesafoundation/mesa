@@ -83,7 +83,7 @@ declare class Server extends EventEmitter {
     private authenticatedClients;
     private get authenticatedClientIds();
     use(middleware: Middleware): void;
-    handleMiddlewareEvent(type: MiddlewareEvent, ...args: any[]): void;
+    handleMiddlewareEvent(type: MiddlewareEvent, ...args: any[]): Promise<void>;
     registerAuthentication(client: Client): void;
     get hasMiddleware(): boolean;
     registerDisconnection(disconnectingClient: Client): void;

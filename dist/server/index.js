@@ -105,15 +105,19 @@ class Server extends events_1.EventEmitter {
         const configured = middleware(this);
         this.middlewareHandlers.push(configured);
     }
-    handleMiddlewareEvent(type, ...args) {
+    async handleMiddlewareEvent(type, ...args) {
         if (!this.hasMiddleware)
             return;
-        this.middlewareHandlers.forEach(handler => {
+        for (let i = 0; i < this.middlewareHandlers.length; i++) {
+            const handler = this.middlewareHandlers[i];
             const eventHandler = handler[type];
             if (!eventHandler)
-                return;
-            eventHandler(...args);
-        });
+                continue;
+            try {
+                await eventHandler(...args);
+            }
+            catch (error) { }
+        }
     }
     registerAuthentication(client) {
         this.sendInternalPortalMessage({
