@@ -9,3 +9,5 @@ export { default as Portal } from './portal'
 // Dispatcher
 export { default as Dispatcher } from './dispatcher'
 export { default as DispatchEvent } from './dispatcher/event'
+
+export { default as Middleware, MiddlewareHandler } from './middleware/defs'
