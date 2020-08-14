@@ -119,47 +119,108 @@ class Server extends EventEmitter {
   }
 
   public async send(message: Message, _recipients?: string[], excluding?: string[]) {
+    // Remove excluded recipients from the _recipients array
     if (_recipients && excluding)
       _recipients = _recipients.filter(recipient => excluding.indexOf(recipient) === -1)
 
-    if (!this.redis && !_recipients)
-      return this._send(message, this.clients)
-
-    if (this.redis && _recipients && this.syncConfig.enabled) {
-      const namespace = this.getNamespace('connected_clients')
-      const onlineRecipients = []
-      const offlineRecipients = []
-
-      if (_recipients && this.syncConfig.enabled)
-        for (let i = 0; i < _recipients.length; i++) {
-          const recipient = _recipients[i]
-          const isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
-
-          (isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient)
-        }
-
-      if (onlineRecipients.length > 0)
-        this.publisher.publish(this.pubSubNamespace, JSON.stringify({
-          message: message.serialize(true, { sentByServer: true, sentInternally: true }),
-          recipients: onlineRecipients
-        } as IInternalMessage))
-
-      if (offlineRecipients.length > 0)
-        offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient))
-
-      return
+    // Global message
+    if(!_recipients) {
+      if(this.redis)
+        this._sendPubSub(message, ['*'])
+      else
+        this._send(message, this.clients)
     }
 
-    if (this.redis)
-      return this.publisher.publish(this.pubSubNamespace, JSON.stringify({
-        message: message.serialize(true, { sentByServer: true, sentInternally: true }),
-        recipients: _recipients || ['*']
-      } as IInternalMessage))
-    else {
+    const serializedMessage = message.serialize(true)
+    const serializedPSMessage = message.serialize(true, { sentByServer: true, sentInternally: true })
+
+    if (this.redis) {
+      function isIdOnReplica(id) {
+        return _recipients.indexOf(id) > -1
+      }
+
+      const idsOnReplica = this.authenticatedClientIds.filter(isIdOnReplica)
+      let idsOnCluster = this.authenticatedClientIds.filter(id => !isIdOnReplica(id))
+
+      // If sync is enabled
+      if(this.syncConfig.enabled) {
+        // Get the namespace of the connected clients
+        const namespace = this.getNamespace('connected_clients')
+        
+        // Create empty recipients lists
+        const onlineRecipients = []
+        const offlineRecipients = []
+
+        // For each recipients get if the client is online or not
+        const pipeline = this.redis.pipeline()
+        for (let i = 0; i < _recipients.length; i++)
+          pipeline.sismember(namespace, _recipients[i])
+
+        // Execute the pipeline and add the client id to the online or offline recipients list
+        const rawMembers = await pipeline.exec()
+        for(let i = 0; i < rawMembers.length; i++) {
+          const [err, online] = rawMembers[i]
+          if(err)
+            continue
+
+          if(online)
+            onlineRecipients.push(_recipients[i])
+          else
+            offlineRecipients.push(_recipients[i])
+        }
+
+        // If there are some offline recipients then handle the undeliverable messages
+        if (offlineRecipients.length > 0)
+          offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient))
+
+        // Remove any offline recipients from the idsOnCluster list
+        // Note that we don't do this for the idsOnReplica list as those ids are checked from the online membrs on this replica
+        idsOnCluster = idsOnCluster.filter(id => offlineRecipients.indexOf(id) === -1)
+      }
+
+      const clientsOnReplica = this.authenticatedClients(idsOnReplica)
+
+      if(clientsOnReplica.length > 0)
+        this._send(message, clientsOnReplica)
+
+      if(idsOnCluster.length > 0)
+        this._sendPubSub(message, idsOnCluster)
+    } else {
       const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1)
 
       this._send(message, recipients)
     }
+  }
+
+  private _send(message: Message, recipients: Client[]) {
+    // Authentication.required rule
+    if (this.authenticationConfig.required)
+      recipients = recipients.filter(({ authenticated }) => !!authenticated)
+
+    // Don't send if no recipients
+    if (recipients.length === 0)
+      return
+
+    recipients.forEach(recipient => recipient.send(message, true))
+
+    this.handleMiddlewareEvent('onMessageSent', message, recipients, true)
+  }
+
+  private _sendPubSub(message: Message, recipientIds?: string[]) {
+    const internalMessage: IInternalMessage = {
+      message: message.serialize(true, { sentByServer: true, sentInternally: true }) as IMessage,
+      recipients: recipientIds || ['*']
+    }
+
+    this.publisher.publish(this.pubSubNamespace, JSON.stringify(internalMessage))
+  } 
+
+  private authenticatedClients(ids: string[]) {
+    return this.clients.filter(client => client.authenticated).filter(client => ids.indexOf(client.id) > -1)
+  }
+
+  private get authenticatedClientIds() {
+    return this.clients.filter(client => client.authenticated).map(client => client.id)
   }
 
   public use(middleware: Middleware) {
@@ -276,20 +337,6 @@ class Server extends EventEmitter {
     return config
   }
 
-  private _send(message: Message, recipients: Client[]) {
-    // Authentication.required rule
-    if (this.authenticationConfig.required)
-      recipients = recipients.filter(({ authenticated }) => !!authenticated)
-
-    // Don't send if no recipients
-    if (recipients.length === 0)
-      return
-
-    recipients.forEach(recipient => recipient.send(message, true))
-
-    this.handleMiddlewareEvent('onMessageSent', message, recipients, false)
-  }
-
   // Setup
   private setupRedis(redisConfig: RedisConfig) {
     const redis: Redis.Redis = createRedisClient(redisConfig)
@@ -403,7 +450,7 @@ class Server extends EventEmitter {
 
     recipients.forEach(client => client.send(message, true))
 
-    this.handleMiddlewareEvent('onMessageSent', message, recipients, true)
+    this.handleMiddlewareEvent('onMessageSent', message, recipients, false)
   }
 
   private async handleUndeliverableMessage(message: Message, recipient: string) {

@@ -21,38 +21,86 @@ class Server extends events_1.EventEmitter {
         this.setup(config);
     }
     async send(message, _recipients, excluding) {
+        // Remove excluded recipients from the _recipients array
         if (_recipients && excluding)
             _recipients = _recipients.filter(recipient => excluding.indexOf(recipient) === -1);
-        if (!this.redis && !_recipients)
-            return this._send(message, this.clients);
-        if (this.redis && _recipients && this.syncConfig.enabled) {
-            const namespace = this.getNamespace('connected_clients');
-            const onlineRecipients = [];
-            const offlineRecipients = [];
-            if (_recipients && this.syncConfig.enabled)
-                for (let i = 0; i < _recipients.length; i++) {
-                    const recipient = _recipients[i];
-                    const isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
-                    (isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient);
-                }
-            if (onlineRecipients.length > 0)
-                this.publisher.publish(this.pubSubNamespace, JSON.stringify({
-                    message: message.serialize(true, { sentByServer: true, sentInternally: true }),
-                    recipients: onlineRecipients
-                }));
-            if (offlineRecipients.length > 0)
-                offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient));
-            return;
+        // Global message
+        if (!_recipients) {
+            if (this.redis)
+                this._sendPubSub(message, ['*']);
+            else
+                this._send(message, this.clients);
         }
-        if (this.redis)
-            return this.publisher.publish(this.pubSubNamespace, JSON.stringify({
-                message: message.serialize(true, { sentByServer: true, sentInternally: true }),
-                recipients: _recipients || ['*']
-            }));
+        const serializedMessage = message.serialize(true);
+        const serializedPSMessage = message.serialize(true, { sentByServer: true, sentInternally: true });
+        if (this.redis) {
+            function isIdOnReplica(id) {
+                return _recipients.indexOf(id) > -1;
+            }
+            const idsOnReplica = this.authenticatedClientIds.filter(isIdOnReplica);
+            let idsOnCluster = this.authenticatedClientIds.filter(id => !isIdOnReplica(id));
+            // If sync is enabled
+            if (this.syncConfig.enabled) {
+                // Get the namespace of the connected clients
+                const namespace = this.getNamespace('connected_clients');
+                // Create empty recipients lists
+                const onlineRecipients = [];
+                const offlineRecipients = [];
+                // For each recipients get if the client is online or not
+                const pipeline = this.redis.pipeline();
+                for (let i = 0; i < _recipients.length; i++)
+                    pipeline.sismember(namespace, _recipients[i]);
+                // Execute the pipeline and add the client id to the online or offline recipients list
+                const rawMembers = await pipeline.exec();
+                for (let i = 0; i < rawMembers.length; i++) {
+                    const [err, online] = rawMembers[i];
+                    if (err)
+                        continue;
+                    if (online)
+                        onlineRecipients.push(_recipients[i]);
+                    else
+                        offlineRecipients.push(_recipients[i]);
+                }
+                // If there are some offline recipients then handle the undeliverable messages
+                if (offlineRecipients.length > 0)
+                    offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient));
+                // Remove any offline recipients from the idsOnCluster list
+                // Note that we don't do this for the idsOnReplica list as those ids are checked from the online membrs on this replica
+                idsOnCluster = idsOnCluster.filter(id => offlineRecipients.indexOf(id) === -1);
+            }
+            const clientsOnReplica = this.authenticatedClients(idsOnReplica);
+            if (clientsOnReplica.length > 0)
+                this._send(message, clientsOnReplica);
+            if (idsOnCluster.length > 0)
+                this._sendPubSub(message, idsOnCluster);
+        }
         else {
             const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1);
             this._send(message, recipients);
         }
+    }
+    _send(message, recipients) {
+        // Authentication.required rule
+        if (this.authenticationConfig.required)
+            recipients = recipients.filter(({ authenticated }) => !!authenticated);
+        // Don't send if no recipients
+        if (recipients.length === 0)
+            return;
+        recipients.forEach(recipient => recipient.send(message, true));
+        this.handleMiddlewareEvent('onMessageSent', message, recipients, true);
+    }
+    _sendPubSub(message, recipientIds) {
+        const internalMessage = {
+            message: message.serialize(true, { sentByServer: true, sentInternally: true }),
+            recipients: recipientIds || ['*']
+        };
+        this.publisher.publish(this.pubSubNamespace, JSON.stringify(internalMessage));
+    }
+    authenticatedClients(ids) {
+        return this.clients.filter(client => client.authenticated).filter(client => ids.indexOf(client.id) > -1);
+    }
+    get authenticatedClientIds() {
+        return this.clients.filter(client => client.authenticated).map(client => client.id);
     }
     use(middleware) {
         const configured = middleware(this);
@@ -136,16 +184,6 @@ class Server extends events_1.EventEmitter {
         if (this.syncConfig && this.syncConfig.enabled && !this.authenticationConfig.storeConnectedUsers)
             console.warn('Mesa requires config.authentication.storeConnectedUsers to be true for message sync to be enabled');
         return config;
-    }
-    _send(message, recipients) {
-        // Authentication.required rule
-        if (this.authenticationConfig.required)
-            recipients = recipients.filter(({ authenticated }) => !!authenticated);
-        // Don't send if no recipients
-        if (recipients.length === 0)
-            return;
-        recipients.forEach(recipient => recipient.send(message, true));
-        this.handleMiddlewareEvent('onMessageSent', message, recipients, false);
     }
     // Setup
     setupRedis(redisConfig) {
@@ -232,7 +270,7 @@ class Server extends events_1.EventEmitter {
         if (recipients.length === 0)
             return;
         recipients.forEach(client => client.send(message, true));
-        this.handleMiddlewareEvent('onMessageSent', message, recipients, true);
+        this.handleMiddlewareEvent('onMessageSent', message, recipients, false);
     }
     async handleUndeliverableMessage(message, recipient) {
         sync_until_1.handleUndeliveredMessage(message, recipient, this.redis, this.getNamespace('undelivered_messages'));

@@ -77,7 +77,11 @@ declare class Server extends EventEmitter {
     private portalIndex;
     private middlewareHandlers;
     constructor(config?: IServerConfig);
-    send(message: Message, _recipients?: string[], excluding?: string[]): Promise<number | void>;
+    send(message: Message, _recipients?: string[], excluding?: string[]): Promise<void>;
+    private _send;
+    private _sendPubSub;
+    private authenticatedClients;
+    private get authenticatedClientIds();
     use(middleware: Middleware): void;
     handleMiddlewareEvent(type: MiddlewareEvent, ...args: any[]): void;
     registerAuthentication(client: Client): void;
@@ -88,7 +92,6 @@ declare class Server extends EventEmitter {
     get pubSubNamespace(): string;
     private setup;
     private parseConfig;
-    private _send;
     private setupRedis;
     private sendInternalPortalMessage;
     private loadInitialState;

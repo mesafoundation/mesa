@@ -73,13 +73,13 @@ class Client extends events_1.EventEmitter {
         if (this.heartbeatBuffer.length > 0 || this.heartbeatCount === 0) {
             this.heartbeatBuffer = [];
             this.heartbeatAttempts = 0;
-            this.send(new message_1.default(1, {}));
+            this.send(new message_1.default(1, {}), true);
         }
         else {
             this.heartbeatAttempts += 1;
             if (this.heartbeatAttempts > this.heartbeatMaxAttempts)
                 return this.disconnect();
-            this.send(new message_1.default(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }));
+            this.send(new message_1.default(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }), true);
         }
         this.heartbeatCount += 1;
     }
@@ -128,7 +128,7 @@ class Client extends events_1.EventEmitter {
                 this.server.redis.sadd(this.clientNamespace('connected_clients'), id);
         }
         if (!this.authenticated)
-            this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}));
+            this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}), true);
         this.authenticated = true;
         this.server.registerAuthentication(this);
         this.server.handleMiddlewareEvent('onAuthenticated', this);

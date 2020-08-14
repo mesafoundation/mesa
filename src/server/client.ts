@@ -147,13 +147,14 @@ class Client extends EventEmitter {
       this.heartbeatBuffer = []
       this.heartbeatAttempts = 0
 
-      this.send(new Message(1, {}))
+      this.send(new Message(1, {}), true)
     } else {
       this.heartbeatAttempts += 1
 
       if (this.heartbeatAttempts > this.heartbeatMaxAttempts) 
         return this.disconnect()
-      this.send(new Message(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }))
+
+      this.send(new Message(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }), true)
     }
 
     this.heartbeatCount += 1
@@ -216,7 +217,7 @@ class Client extends EventEmitter {
     }
 
     if (!this.authenticated)
-      this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}))
+      this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}), true)
 
     this.authenticated = true
     this.server.registerAuthentication(this)
