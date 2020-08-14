@@ -4,7 +4,7 @@ const { default: Mesa, Message, Client } = require('../dist')
 describe('middleware', () => {
   it('properly registers a middleware', done => {
     function Middleware(server) {
-      done()
+      server.wss.close(done)
 
       return {}
     }
@@ -17,7 +17,7 @@ describe('middleware', () => {
     test('onConnected', done => {
       function Middleware(server) {
         return {
-          onConnection: () => done()
+          onConnection: () => server.wss.close(done)
         }
       }
 
@@ -31,7 +31,7 @@ describe('middleware', () => {
     test('onDisconnection', done => {
       function Middleware(server) {
         return {
-          onDisconnection: () => done()
+          onDisconnection: () => server.wss.close(done)
         }
       }
 
@@ -43,13 +43,15 @@ describe('middleware', () => {
       client.on('connected', () => client.disconnect())
     })
 
-    test('onMessage', () => {
+    test('onMessageRecieved', () => {
       const message = new Message(0, { x: 1, y: 2 }, 'TEST')
 
       function Middleware(server) {
         return {
-          onMessage: mwMessage => {
+          onMessageRecieved: mwMessage => {
             expect(mwMessage).toMatchObject(message)
+
+            server.wss.close()
           }
         }
       }
