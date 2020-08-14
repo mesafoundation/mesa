@@ -63,11 +63,8 @@ function Metrics() {
 As state kept in the middleware does not persist on replicated servers or after a restart, we recommend you use Redis in order to store middleware values. We also highly recommend you use the namespace handler in order to ensure that there are no issues with different Mesa servers running on the same plane:
 ```js
 function PersistedMetrics(config) {
-  const middlewareName = 'persisted_metrics'
-  
-  return function({ redis, getMiddlewareNamespace }) {
-    const connectedKey = getMiddlewareNamespace('connected_clients_count', middlewareName)
-    const messagesKey = getMiddlewareNamespace('messages_recieved_count', middlewareName)
+  return function({ redis, mapMiddlewareNamespace }) {
+    const [connectedKey, messagesKey] = mapMiddlewareNamespace(['connected_clients_count', 'messages_recieved_count'], 'persisted_metrics')
 
     return {
       onConnected: client => {
@@ -131,10 +128,15 @@ return {
 
   },
 
-  // Called when Mesa recieves a message. In the future this will be renamed to 'onMessageRecieved'
-  onMessage(message: Message, client: Client) {
+  // Called when Mesa sends a message
+  onMessageSent(message: Message, client: Client[], fromCurrentReplica: boolean) {
 
   },
+  // Called when Mesa recieves a message from a client
+  onMessageRecieved(message: Message, client: Client) {
+
+  },
+
   // Called when a client is authenticated
   onAuthenticated(client: Client) {
 

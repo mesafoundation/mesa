@@ -184,7 +184,7 @@ class Client extends EventEmitter {
     this.emit('message', message)
     this.server.emit('message', message)
     this.server.sendPortalableMessage(message, this)
-    this.server.handleMiddlewareEvent('onMessage', message, this)
+    this.server.handleMiddlewareEvent('onMessageRecieved', message, this)
 
     if (this.server.serverOptions.storeMessages)
       this.messages.recieved.push(message)

@@ -145,6 +145,7 @@ class Server extends events_1.EventEmitter {
         if (recipients.length === 0)
             return;
         recipients.forEach(recipient => recipient.send(message, true));
+        this.handleMiddlewareEvent('onMessageSent', message, recipients, false);
     }
     // Setup
     setupRedis(redisConfig) {
@@ -228,7 +229,10 @@ class Server extends events_1.EventEmitter {
             recipients = this.clients;
         else
             recipients = this.clients.filter(client => _recipients.indexOf(client.id) > -1);
+        if (recipients.length === 0)
+            return;
         recipients.forEach(client => client.send(message, true));
+        this.handleMiddlewareEvent('onMessageSent', message, recipients, true);
     }
     async handleUndeliverableMessage(message, recipient) {
         sync_until_1.handleUndeliveredMessage(message, recipient, this.redis, this.getNamespace('undelivered_messages'));
@@ -251,7 +255,11 @@ class Server extends events_1.EventEmitter {
         return this.namespace ? `${prefix}_${this.namespace}` : prefix;
     }
     getMiddlewareNamespace(prefix, name) {
-        return this.namespace ? `${prefix}_mw-${name}_${this.namespace}` : prefix;
+        const key = `${prefix}_mw-${name}`;
+        return this.namespace ? `${key}_${this.namespace}` : key;
+    }
+    mapMiddlewareNamespace(prefixes, name) {
+        return prefixes.map(prefix => this.getMiddlewareNamespace(prefix, name));
     }
     get portalPubSubNamespace() {
         return this.getNamespace('portal');

@@ -11,7 +11,9 @@ export interface MiddlewareHandler {
 
   onRedeliverUndeliverableMessages: (count: number, client: string) => void
 
-  onMessage: (message: Message, client: Client) => void
+  onMessageSent: (message: Message, clients: Client[], fromCurrentReplica: boolean) => void
+  onMessageRecieved: (message: Message, client: Client) => void
+
   onAuthenticated: (client: Client) => void
 }
 
@@ -21,7 +23,8 @@ export type MiddlewareEvent =
   'onPortalJoin' |
   'onPortalLeave' |
   'onRedeliverUndeliverableMessages' |
-  'onMessage' |
+  'onMessageSent' |
+  'onMessageRecieved' |
   'onAuthenticated'
 
 export type MiddlewareNondescriptHandler = (...args: any[]) => void

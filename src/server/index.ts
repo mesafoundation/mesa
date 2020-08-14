@@ -286,6 +286,8 @@ class Server extends EventEmitter {
       return
 
     recipients.forEach(recipient => recipient.send(message, true))
+
+    this.handleMiddlewareEvent('onMessageSent', message, recipients, false)
   }
 
   // Setup
@@ -396,7 +398,12 @@ class Server extends EventEmitter {
     else
       recipients = this.clients.filter(client => _recipients.indexOf(client.id) > -1)
 
+    if(recipients.length === 0)
+      return
+
     recipients.forEach(client => client.send(message, true))
+
+    this.handleMiddlewareEvent('onMessageSent', message, recipients, true)
   }
 
   private async handleUndeliverableMessage(message: Message, recipient: string) {
@@ -428,7 +435,13 @@ class Server extends EventEmitter {
   }
 
   public getMiddlewareNamespace(prefix: string, name: string) {
-    return this.namespace ? `${prefix}_mw-${name}_${this.namespace}` : prefix
+    const key = `${prefix}_mw-${name}`
+
+    return this.namespace ? `${key}_${this.namespace}` : key
+  }
+
+  public mapMiddlewareNamespace(prefixes: string[], name: string) {
+    return prefixes.map(prefix => this.getMiddlewareNamespace(prefix, name))
   }
 
   private get portalPubSubNamespace() {
