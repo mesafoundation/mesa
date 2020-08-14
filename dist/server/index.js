@@ -32,8 +32,6 @@ class Server extends events_1.EventEmitter {
             else
                 this._send(message, this.clients);
         }
-        const serializedMessage = message.serialize(true);
-        const serializedPSMessage = message.serialize(true, { sentByServer: true, sentInternally: true });
         if (this.redis) {
             function isIdOnReplica(id) {
                 return _recipients.indexOf(id) > -1;
@@ -152,7 +150,7 @@ class Server extends events_1.EventEmitter {
         return this.getNamespace('ws');
     }
     setupCloseHandler() {
-        death_1.default(async (signal, error) => {
+        death_1.default(async (signal) => {
             if (this.redis && this.clients.length > 0) {
                 await this.redis.decrby(this.connectedClientsCountNamespace, this.clients.length);
                 if (this.authenticationConfig.storeConnectedUsers) {

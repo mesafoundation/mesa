@@ -72,7 +72,7 @@ class Portal extends events_1.EventEmitter {
         this.log('published! ready to recieve updates on namespace', this.config.namespace);
     }
     setupCloseHandler() {
-        death_1.default((signal, err) => {
+        death_1.default(() => {
             this.log('shutting down...');
             this.publishReadyState(false);
             this.redis.srem(this.availablePortalsNamespace, this.id);

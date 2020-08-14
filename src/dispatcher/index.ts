@@ -5,7 +5,7 @@ import DispatchEvent from './event'
 import { Message } from '..'
 import { RedisConfig } from '../server'
 
-import { IInternalMessage, IMessage } from '../server/message'
+import { IInternalMessage } from '../server/message'
 import { createRedisClient } from '../utils/helpers.util'
 import { handleUndeliveredMessage } from '../utils/sync.until'
 

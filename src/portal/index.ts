@@ -101,7 +101,7 @@ class Portal extends EventEmitter {
   }
 
   private setupCloseHandler() {
-    death((signal, err) => {
+    death(() => {
       this.log('shutting down...')
 
       this.publishReadyState(false)
