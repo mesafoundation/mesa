@@ -90,6 +90,7 @@ declare class Server extends EventEmitter {
     close(): void;
     sendPortalableMessage(_message: Message, client: Client): void;
     get pubSubNamespace(): string;
+    private setupCloseHandler;
     private setup;
     private parseConfig;
     private setupRedis;
@@ -105,6 +106,7 @@ declare class Server extends EventEmitter {
     mapMiddlewareNamespace(prefixes: string[], name: string): string[];
     private get portalPubSubNamespace();
     private get availablePortalsNamespace();
+    private get connectedClientsNamespace();
     private get connectedClientsCountNamespace();
 }
 export default Server;

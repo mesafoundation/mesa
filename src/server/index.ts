@@ -1,5 +1,6 @@
 import http from 'http'
 import https from 'https'
+import death from 'death'
 
 import { EventEmitter } from 'events'
 import Redis from 'ioredis'
@@ -286,6 +287,22 @@ class Server extends EventEmitter {
     return this.getNamespace('ws')
   }
 
+  private setupCloseHandler() {
+    death(async (signal, error) => {
+      if(this.redis && this.clients.length > 0) {
+        await this.redis.decrby(this.connectedClientsCountNamespace, this.clients.length)
+
+        if(this.authenticationConfig.storeConnectedUsers) {
+          const idsOnReplica = this.authenticatedClientIds
+
+          await this.redis.srem(this.connectedClientsNamespace, ...idsOnReplica)
+        }
+      }
+
+      process.exit(signal)
+    })
+  }
+
   private setup(config: IServerConfig) {
     if (this.wss)
       this.wss.close()
@@ -302,6 +319,8 @@ class Server extends EventEmitter {
 
     this.wss = new WebSocket.Server(options)
     this.wss.on('connection', (socket, req) => this.registerConnection(socket, req))
+
+    this.setupCloseHandler()
   }
 
   private parseConfig(_config?: IServerConfig) {
@@ -497,6 +516,10 @@ class Server extends EventEmitter {
 
   private get availablePortalsNamespace() {
     return this.getNamespace('available_portals_pool')
+  }
+
+  private get connectedClientsNamespace() {
+    return this.getNamespace('connected_clients')
   }
 
   private get connectedClientsCountNamespace() {

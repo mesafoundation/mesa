@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const death_1 = __importDefault(require("death"));
 const events_1 = require("events");
 const ws_1 = __importDefault(require("ws"));
 const client_1 = __importDefault(require("./client"));
@@ -150,6 +151,18 @@ class Server extends events_1.EventEmitter {
     get pubSubNamespace() {
         return this.getNamespace('ws');
     }
+    setupCloseHandler() {
+        death_1.default(async (signal, error) => {
+            if (this.redis && this.clients.length > 0) {
+                await this.redis.decrby(this.connectedClientsCountNamespace, this.clients.length);
+                if (this.authenticationConfig.storeConnectedUsers) {
+                    const idsOnReplica = this.authenticatedClientIds;
+                    await this.redis.srem(this.connectedClientsNamespace, ...idsOnReplica);
+                }
+            }
+            process.exit(signal);
+        });
+    }
     setup(config) {
         if (this.wss)
             this.wss.close();
@@ -162,6 +175,7 @@ class Server extends events_1.EventEmitter {
             options.path = config.path;
         this.wss = new ws_1.default.Server(options);
         this.wss.on('connection', (socket, req) => this.registerConnection(socket, req));
+        this.setupCloseHandler();
     }
     parseConfig(_config) {
         const config = Object.assign({}, _config);
@@ -304,6 +318,9 @@ class Server extends events_1.EventEmitter {
     }
     get availablePortalsNamespace() {
         return this.getNamespace('available_portals_pool');
+    }
+    get connectedClientsNamespace() {
+        return this.getNamespace('connected_clients');
     }
     get connectedClientsCountNamespace() {
         return this.getNamespace('connected_clients_count');

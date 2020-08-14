@@ -9,7 +9,9 @@ const mesa = new Mesa({
   port: 4000,
   path: '/ws',
   
-  namespace: 'example'
+  namespace: 'example',
+
+  redis: 'redis://localhost:6379'
 })
 
 console.log('Mesa listening on', mesa.port)
