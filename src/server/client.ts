@@ -273,7 +273,7 @@ class Client extends EventEmitter {
       messageIndex += 1
     }, messageRedeliveryInterval || 0)
 
-    this.server.handleMiddlewareEvent('onRedeliverUndeliverableMessages', messageIndex - 1, this)
+    this.server.handleMiddlewareEvent('onRedeliverUndeliverableMessages', messages, this)
 
     this.clearUndeliveredMessages()
   }

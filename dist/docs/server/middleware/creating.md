@@ -123,6 +123,10 @@ return {
 
   },
 
+  // Called when Mesa cannot deliver a message to a client as they are offline
+  onUndeliverableMessageSent(message: Message, clientIds: string[]) {
+
+  },
   // Called when Mesa sends undeliverable messages back to a client after a period of inactivity
   onRedeliverUndeliverableMessages(count: number, client: string) {
 
@@ -140,6 +144,6 @@ return {
   // Called when a client is authenticated
   onAuthenticated(client: Client) {
 
-  },
+  }
 }
 ```

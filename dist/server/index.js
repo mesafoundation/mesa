@@ -61,8 +61,10 @@ class Server extends events_1.EventEmitter {
                         offlineRecipients.push(_recipients[i]);
                 }
                 // If there are some offline recipients then handle the undeliverable messages
-                if (offlineRecipients.length > 0)
+                if (offlineRecipients.length > 0) {
                     offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient));
+                    this.handleMiddlewareEvent('onUndeliverableMessageSent', message, offlineRecipients);
+                }
                 // Remove any offline recipients from the idsOnCluster list
                 // Note that we don't do this for the idsOnReplica list as those ids are checked from the online membrs on this replica
                 idsOnCluster = idsOnCluster.filter(id => offlineRecipients.indexOf(id) === -1);

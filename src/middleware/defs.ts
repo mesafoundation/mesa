@@ -9,7 +9,8 @@ export interface MiddlewareHandler {
   onPortalJoin: (id: string) => void
   onPortalLeave: (id: string) => void
 
-  onRedeliverUndeliverableMessages: (count: number, client: string) => void
+  onUndeliverableMessageSent: (message: Message, clientIds: string[]) => void
+  onRedeliverUndeliverableMessages: (messages: Message[], client: Client) => void
 
   onMessageSent: (message: Message, clients: Client[], fromCurrentReplica: boolean) => void
   onMessageRecieved: (message: Message, client: Client) => void
@@ -22,6 +23,7 @@ export type MiddlewareEvent =
   'onDisconnection' |
   'onPortalJoin' |
   'onPortalLeave' |
+  'onUndeliverableMessageSent' |
   'onRedeliverUndeliverableMessages' |
   'onMessageSent' |
   'onMessageRecieved' |
