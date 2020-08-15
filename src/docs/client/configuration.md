@@ -1,6 +1,6 @@
 # Configuration
 Mesa's Client component allows for the following configuration to be passed in during initialization:
-```ts
+```js
 {
   // Optional: enable/disable auto connection to the Mesa server once the client object has been instantiated. Enabled by default. Once disabled, use the 'connect()' method in order to connect the client to the Mesa server
   autoConnect?: boolean

@@ -10,7 +10,7 @@ When a client connects to your server, call the `client.authenticate` method to 
 
 ### Authenticate Method
 `client.authenticate` takes in a single method with two parameters: a data and a callback method:
-```ts
+```js
 client.authenticate((data, done) => {})
 ```
 
@@ -23,7 +23,7 @@ The `data` parameter is data sent from your client which should contain enough i
 
 ### Done Callback
 The `done` parameter is a method that takes in two different paremeters: error and user:
-```ts
+```js
 done(error, user)
 ```
 
@@ -53,7 +53,7 @@ That's it! Hopefully the Mesa authentication API is able to fit and adapt to you
 
 ## Example
 The following example uses the `jsonwebtoken` and `monk` libraries to authenticate connecting clients:
-```ts
+```js
 import { Mesa } from '@cryb/mesa'
 
 import monk from 'monk'

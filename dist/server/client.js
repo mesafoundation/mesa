@@ -73,13 +73,13 @@ class Client extends events_1.EventEmitter {
         if (this.heartbeatBuffer.length > 0 || this.heartbeatCount === 0) {
             this.heartbeatBuffer = [];
             this.heartbeatAttempts = 0;
-            this.send(new message_1.default(1, {}));
+            this.send(new message_1.default(1, {}), true);
         }
         else {
             this.heartbeatAttempts += 1;
             if (this.heartbeatAttempts > this.heartbeatMaxAttempts)
                 return this.disconnect();
-            this.send(new message_1.default(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }));
+            this.send(new message_1.default(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }), true);
         }
         this.heartbeatCount += 1;
     }
@@ -104,6 +104,7 @@ class Client extends events_1.EventEmitter {
         this.emit('message', message);
         this.server.emit('message', message);
         this.server.sendPortalableMessage(message, this);
+        this.server.handleMiddlewareEvent('onMessageRecieved', message, this);
         if (this.server.serverOptions.storeMessages)
             this.messages.recieved.push(message);
     }
@@ -127,9 +128,10 @@ class Client extends events_1.EventEmitter {
                 this.server.redis.sadd(this.clientNamespace('connected_clients'), id);
         }
         if (!this.authenticated)
-            this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}));
+            this.send(new message_1.default(22, this.server.authenticationConfig.sendUserObject ? user : {}), true);
         this.authenticated = true;
         this.server.registerAuthentication(this);
+        this.server.handleMiddlewareEvent('onAuthenticated', this);
     }
     registerDisconnection(code, reason) {
         if (this.heartbeatInterval)
@@ -138,6 +140,7 @@ class Client extends events_1.EventEmitter {
             this.server.redis.srem(this.clientNamespace('connected_clients'), this.id);
         this.emit('disconnect', code, reason);
         this.server.emit('disconnection', code, reason);
+        this.server.handleMiddlewareEvent('onDisconnection', this, code, reason);
         this.server.registerDisconnection(this);
     }
     async redeliverUndeliverableMessages() {
@@ -164,6 +167,7 @@ class Client extends events_1.EventEmitter {
             this.send(message, true);
             messageIndex += 1;
         }, messageRedeliveryInterval || 0);
+        this.server.handleMiddlewareEvent('onRedeliverUndeliverableMessages', messages, this);
         this.clearUndeliveredMessages();
     }
     async clearUndeliveredMessages() {

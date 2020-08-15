@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import WebSocket from 'ws'
 
 import { IClientConnectionConfig, Rule } from '../server/client'
-import Message, { IMessage, IMessageOptions, IMessages } from '../server/message'
+import Message, { IMessage, IMessages } from '../server/message'
 import { getVersion } from '../utils/getters.util'
 
 interface IClientConfig {

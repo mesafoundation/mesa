@@ -2,12 +2,10 @@ name: Unit Tests
 
 on:
   push:
-    branches: [ master, test-support ]
     paths-ignore:
     - 'src/README.md'
     - 'src/docs/**/*'
   pull_request:
-    branches: [ master, test-support ]
     paths-ignore:
     - 'src/README.md'
     - 'src/docs/**/*'

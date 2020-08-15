@@ -1,5 +1,6 @@
 import http from 'http'
 import https from 'https'
+import death from 'death'
 
 import { EventEmitter } from 'events'
 import Redis from 'ioredis'
@@ -7,6 +8,7 @@ import WebSocket, { ServerOptions as WSOptions } from 'ws'
 
 import Client, { IClientConnectionConfig, Rule } from './client'
 import Message, { IInternalMessage, IMessage } from './message'
+import Middleware, { MiddlewareEvent, MiddlewareHandler, MiddlewareNondescriptHandler } from '../middleware/defs'
 
 import { IPortalInternalMessage, IPortalUpdate } from '../portal/defs'
 
@@ -107,6 +109,8 @@ class Server extends EventEmitter {
   private portals: string[] = []
   private portalIndex = 0
 
+  private middlewareHandlers: MiddlewareHandler[] = []
+
   constructor(config?: IServerConfig) {
     super()
 
@@ -116,46 +120,129 @@ class Server extends EventEmitter {
   }
 
   public async send(message: Message, _recipients?: string[], excluding?: string[]) {
+    // Remove excluded recipients from the _recipients array
     if (_recipients && excluding)
       _recipients = _recipients.filter(recipient => excluding.indexOf(recipient) === -1)
 
-    if (!this.redis && !_recipients)
-      return this._send(message, this.clients)
-
-    if (this.redis && _recipients && this.syncConfig.enabled) {
-      const namespace = this.getNamespace('connected_clients')
-      const onlineRecipients = []
-      const offlineRecipients = []
-
-      if (_recipients && this.syncConfig.enabled)
-        for (let i = 0; i < _recipients.length; i++) {
-          const recipient = _recipients[i]
-          const isRecipientConnected = (await this.redis.sismember(namespace, _recipients[i])) === 1;
-
-          (isRecipientConnected ? onlineRecipients : offlineRecipients).push(recipient)
-        }
-
-      if (onlineRecipients.length > 0)
-        this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
-          message: message.serialize(true, { sentByServer: true, sentInternally: true }),
-          recipients: onlineRecipients
-        } as IInternalMessage))
-
-      if (offlineRecipients.length > 0)
-        offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient))
-
-      return
+    // Global message
+    if(!_recipients) {
+      if(this.redis)
+        this._sendPubSub(message, ['*'])
+      else
+        this._send(message, this.clients)
     }
 
-    if (this.redis)
-      return this.publisher.publish(this.pubSubNamespace(), JSON.stringify({
-        message: message.serialize(true, { sentByServer: true, sentInternally: true }),
-        recipients: _recipients || ['*']
-      } as IInternalMessage))
-    else {
+    if (this.redis) {
+      function isIdOnReplica(id) {
+        return _recipients.indexOf(id) > -1
+      }
+
+      const idsOnReplica = this.authenticatedClientIds.filter(isIdOnReplica)
+      let idsOnCluster = this.authenticatedClientIds.filter(id => !isIdOnReplica(id))
+
+      // If sync is enabled
+      if(this.syncConfig.enabled) {
+        // Get the namespace of the connected clients
+        const namespace = this.getNamespace('connected_clients')
+        
+        // Create empty recipients lists
+        const onlineRecipients = []
+        const offlineRecipients = []
+
+        // For each recipients get if the client is online or not
+        const pipeline = this.redis.pipeline()
+        for (let i = 0; i < _recipients.length; i++)
+          pipeline.sismember(namespace, _recipients[i])
+
+        // Execute the pipeline and add the client id to the online or offline recipients list
+        const rawMembers = await pipeline.exec()
+        for(let i = 0; i < rawMembers.length; i++) {
+          const [err, online] = rawMembers[i]
+          if(err)
+            continue
+
+          if(online)
+            onlineRecipients.push(_recipients[i])
+          else
+            offlineRecipients.push(_recipients[i])
+        }
+
+        // If there are some offline recipients then handle the undeliverable messages
+        if (offlineRecipients.length > 0) {
+          offlineRecipients.forEach(recipient => this.handleUndeliverableMessage(message, recipient))
+
+          this.handleMiddlewareEvent('onUndeliverableMessageSent', message, offlineRecipients)
+        }
+
+        // Remove any offline recipients from the idsOnCluster list
+        // Note that we don't do this for the idsOnReplica list as those ids are checked from the online membrs on this replica
+        idsOnCluster = idsOnCluster.filter(id => offlineRecipients.indexOf(id) === -1)
+      }
+
+      const clientsOnReplica = this.authenticatedClients(idsOnReplica)
+
+      if(clientsOnReplica.length > 0)
+        this._send(message, clientsOnReplica)
+
+      if(idsOnCluster.length > 0)
+        this._sendPubSub(message, idsOnCluster)
+    } else {
       const recipients = this.clients.filter(({ id }) => _recipients.indexOf(id) > -1)
 
       this._send(message, recipients)
+    }
+  }
+
+  private _send(message: Message, recipients: Client[]) {
+    // Authentication.required rule
+    if (this.authenticationConfig.required)
+      recipients = recipients.filter(({ authenticated }) => !!authenticated)
+
+    // Don't send if no recipients
+    if (recipients.length === 0)
+      return
+
+    recipients.forEach(recipient => recipient.send(message, true))
+
+    this.handleMiddlewareEvent('onMessageSent', message, recipients, true)
+  }
+
+  private _sendPubSub(message: Message, recipientIds?: string[]) {
+    const internalMessage: IInternalMessage = {
+      message: message.serialize(true, { sentByServer: true, sentInternally: true }) as IMessage,
+      recipients: recipientIds || ['*']
+    }
+
+    this.publisher.publish(this.pubSubNamespace, JSON.stringify(internalMessage))
+  } 
+
+  private authenticatedClients(ids: string[]) {
+    return this.clients.filter(client => client.authenticated).filter(client => ids.indexOf(client.id) > -1)
+  }
+
+  private get authenticatedClientIds() {
+    return this.clients.filter(client => client.authenticated).map(client => client.id)
+  }
+
+  public use(middleware: Middleware) {
+    const configured = middleware(this)
+
+    this.middlewareHandlers.push(configured)
+  }
+
+  public async handleMiddlewareEvent(type: MiddlewareEvent, ...args: any[]) {
+    if(!this.hasMiddleware)
+      return
+
+    for(let i = 0; i < this.middlewareHandlers.length; i++) {
+      const handler = this.middlewareHandlers[i]
+      const eventHandler = handler[type] as MiddlewareNondescriptHandler
+      if(!eventHandler)
+        continue
+
+      try {
+        await eventHandler(...args)
+      } catch(error) {}
     }
   }
 
@@ -166,6 +253,10 @@ class Server extends EventEmitter {
     })
   }
 
+  public get hasMiddleware() {
+    return this.middlewareHandlers.length > 0
+  }
+
   public registerDisconnection(disconnectingClient: Client) {
     const clientIndex = this.clients.findIndex(client => client.serverId === disconnectingClient.serverId)
     this.clients.splice(clientIndex, 1)
@@ -174,6 +265,9 @@ class Server extends EventEmitter {
       type: 'disconnection',
       clientId: disconnectingClient.id
     })
+
+    if(this.redis)
+      this.redis.decr(this.connectedClientsCountNamespace)
   }
 
   public close() {
@@ -192,8 +286,24 @@ class Server extends EventEmitter {
     this.sendInternalPortalMessage(message)
   }
 
-  public pubSubNamespace() {
+  public get pubSubNamespace() {
     return this.getNamespace('ws')
+  }
+
+  private setupCloseHandler() {
+    death(async signal => {
+      if(this.redis && this.clients.length > 0) {
+        await this.redis.decrby(this.connectedClientsCountNamespace, this.clients.length)
+
+        if(this.authenticationConfig.storeConnectedUsers) {
+          const idsOnReplica = this.authenticatedClientIds
+
+          await this.redis.srem(this.connectedClientsNamespace, ...idsOnReplica)
+        }
+      }
+
+      process.exit(signal)
+    })
   }
 
   private setup(config: IServerConfig) {
@@ -212,6 +322,8 @@ class Server extends EventEmitter {
 
     this.wss = new WebSocket.Server(options)
     this.wss.on('connection', (socket, req) => this.registerConnection(socket, req))
+
+    this.setupCloseHandler()
   }
 
   private parseConfig(_config?: IServerConfig) {
@@ -247,18 +359,6 @@ class Server extends EventEmitter {
     return config
   }
 
-  private _send(message: Message, recipients: Client[]) {
-    // Authentication.required rule
-    if (this.authenticationConfig.required)
-      recipients = recipients.filter(({ authenticated }) => !!authenticated)
-
-    // Don't send if no recipients
-    if (recipients.length === 0)
-      return
-
-    recipients.forEach(recipient => recipient.send(message, true))
-  }
-
   // Setup
   private setupRedis(redisConfig: RedisConfig) {
     const redis: Redis.Redis = createRedisClient(redisConfig)
@@ -271,8 +371,8 @@ class Server extends EventEmitter {
 
     this.loadInitialState()
 
-    const pubSubNamespace = this.pubSubNamespace()
-    const availablePortalsNamespace = this.availablePortalsNamespace()
+    const pubSubNamespace = this.pubSubNamespace
+    const availablePortalsNamespace = this.availablePortalsNamespace
 
     subscriber.on('message', async (channel, data) => {
       let json
@@ -315,7 +415,7 @@ class Server extends EventEmitter {
     } else
       chosenPortal = this.portals[Math.floor(Math.random() * this.portals.length)]
 
-    this.publisher.publish(this.portalPubSubNamespace(), JSON.stringify({
+    this.publisher.publish(this.portalPubSubNamespace, JSON.stringify({
       ...internalMessage,
       portalId: chosenPortal
     }))
@@ -323,7 +423,7 @@ class Server extends EventEmitter {
 
   // State Management
   private async loadInitialState() {
-    this.portals = await this.redis.smembers(this.availablePortalsNamespace())
+    this.portals = await this.redis.smembers(this.availablePortalsNamespace)
   }
 
   private handlePortalUpdate(update: IPortalUpdate) {
@@ -349,6 +449,11 @@ class Server extends EventEmitter {
     this.sendInternalPortalMessage({
       type: 'connection'
     })
+
+    this.handleMiddlewareEvent('onConnection', this)
+
+    if(this.redis)
+      this.redis.incr(this.connectedClientsCountNamespace)
   }
 
   private handleInternalMessage(internalMessage: IInternalMessage) {
@@ -362,7 +467,12 @@ class Server extends EventEmitter {
     else
       recipients = this.clients.filter(client => _recipients.indexOf(client.id) > -1)
 
+    if(recipients.length === 0)
+      return
+
     recipients.forEach(client => client.send(message, true))
+
+    this.handleMiddlewareEvent('onMessageSent', message, recipients, false)
   }
 
   private async handleUndeliverableMessage(message: Message, recipient: string) {
@@ -393,12 +503,30 @@ class Server extends EventEmitter {
     return this.namespace ? `${prefix}_${this.namespace}` : prefix
   }
 
-  private portalPubSubNamespace() {
+  public getMiddlewareNamespace(prefix: string, name: string) {
+    const key = `${prefix}_mw-${name}`
+
+    return this.namespace ? `${key}_${this.namespace}` : key
+  }
+
+  public mapMiddlewareNamespace(prefixes: string[], name: string) {
+    return prefixes.map(prefix => this.getMiddlewareNamespace(prefix, name))
+  }
+
+  private get portalPubSubNamespace() {
     return this.getNamespace('portal')
   }
 
-  private availablePortalsNamespace() {
+  private get availablePortalsNamespace() {
     return this.getNamespace('available_portals_pool')
+  }
+
+  private get connectedClientsNamespace() {
+    return this.getNamespace('connected_clients')
+  }
+
+  private get connectedClientsCountNamespace() {
+    return this.getNamespace('connected_clients_count')
   }
 }
 

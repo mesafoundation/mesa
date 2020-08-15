@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseRules = exports.parseConfig = void 0;
 exports.parseConfig = (_config, keys, values) => {
     const config = Object.assign({}, _config);
     if (!config)

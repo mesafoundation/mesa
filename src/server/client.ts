@@ -147,13 +147,14 @@ class Client extends EventEmitter {
       this.heartbeatBuffer = []
       this.heartbeatAttempts = 0
 
-      this.send(new Message(1, {}))
+      this.send(new Message(1, {}), true)
     } else {
       this.heartbeatAttempts += 1
 
       if (this.heartbeatAttempts > this.heartbeatMaxAttempts) 
         return this.disconnect()
-      this.send(new Message(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }))
+
+      this.send(new Message(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }), true)
     }
 
     this.heartbeatCount += 1
@@ -184,6 +185,7 @@ class Client extends EventEmitter {
     this.emit('message', message)
     this.server.emit('message', message)
     this.server.sendPortalableMessage(message, this)
+    this.server.handleMiddlewareEvent('onMessageRecieved', message, this)
 
     if (this.server.serverOptions.storeMessages)
       this.messages.recieved.push(message)
@@ -215,10 +217,12 @@ class Client extends EventEmitter {
     }
 
     if (!this.authenticated)
-      this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}))
+      this.send(new Message(22, this.server.authenticationConfig.sendUserObject ? user : {}), true)
 
     this.authenticated = true
     this.server.registerAuthentication(this)
+
+    this.server.handleMiddlewareEvent('onAuthenticated', this)
   }
 
   private registerDisconnection(code: number, reason?: string) {
@@ -230,6 +234,7 @@ class Client extends EventEmitter {
 
     this.emit('disconnect', code, reason)
     this.server.emit('disconnection', code, reason)
+    this.server.handleMiddlewareEvent('onDisconnection', this, code, reason)
 
     this.server.registerDisconnection(this)
   }
@@ -267,6 +272,8 @@ class Client extends EventEmitter {
 
       messageIndex += 1
     }, messageRedeliveryInterval || 0)
+
+    this.server.handleMiddlewareEvent('onRedeliverUndeliverableMessages', messages, this)
 
     this.clearUndeliveredMessages()
   }

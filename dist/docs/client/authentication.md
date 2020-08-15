@@ -15,7 +15,7 @@ client.on('connection', async () => {
 
 ## Additional Options
 We allow clients to provide a configuration for authenticating with Mesa, alongside their authorization object. Here's a rundown of options we provide:
-```ts
+```js
 {
   // Optional: specifies if the server should send any missed messages as per the Sync feature. Defaults to true
   shouldSync?: boolean
@@ -23,7 +23,7 @@ We allow clients to provide a configuration for authenticating with Mesa, alongs
 ```
 
 This configuration is passed into `client.authenticate` like so:
-```ts
+```js
 await client.authenticate({ token: fetchToken() }, {
   shouldSync: false
 })

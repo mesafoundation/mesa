@@ -107,6 +107,12 @@ We supply a number of guides for fully utilising Mesa server:
 * [Sending Messages using Dispatcher](src/docs/server/message/dispatcher.md)
   * Send messages to clients from anywhere in your codebase
 
+#### Middleware
+* [Using Middleware](src/docs/server/middleware/using.md)
+  * Extend your Mesa server with new functionality and minimal effort
+* [Creating Middleware](src/docs/server/middleware/creating.md)
+  * Create powerful middleware handlers to hook into Mesa's event system
+
 ### Client Side
 *Note: we currently provide client libraries for Node-based JavaScript. For a browser-based client library, see [mesa-js-client](https://github.com/neoncloth/mesa-js-client).*
 
