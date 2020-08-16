@@ -108,8 +108,12 @@ class Client extends EventEmitter {
   }
 
   public updateUser(update: IAuthenticationResult) {
-    if (!this.authenticated) 
-      throw new Error('This user hasn\'t been authenticated yet')
+    if (!this.authenticated) {
+      const error = new Error('This user hasn\'t been authenticated yet')
+      this.registerError(error)
+
+      throw error
+    }
 
     this.registerAuthentication(null, update)
   }
@@ -191,16 +195,24 @@ class Client extends EventEmitter {
       this.messages.recieved.push(message)
   }
 
-  private registerAuthentication(error: any, result: IAuthenticationResult) {
-    if (error && this.server.authenticationConfig.disconnectOnFail)
+  private registerAuthentication(_error: any, result: IAuthenticationResult) {
+    if (_error && this.server.authenticationConfig.disconnectOnFail)
       return this.disconnect(1008)
 
     const { id, user } = result
 
+    let error: Error
+
     if (typeof id === 'undefined')
-      throw new Error('No user id supplied in result callback')
+      error = new Error('No user id supplied in result callback')
     else if (typeof user === 'undefined')
-      throw new Error('No user object supplied in result callback')
+      error = new Error('No user object supplied in result callback')
+
+    if(error) {
+      this.registerError(error)
+
+      throw error
+    }
 
     this.id = id
     this.user = user
@@ -239,6 +251,12 @@ class Client extends EventEmitter {
     this.server.registerDisconnection(this)
   }
 
+  private registerError(error: Error) {
+    this.emit('error', error)
+
+    this.server.handleMiddlewareEvent('onError', error, this)
+  }
+
   private async redeliverUndeliverableMessages() {
     const namespace = this.clientNamespace('undelivered_messages')
     const _undeliveredMessages = await this.server.redis.hget(namespace, this.id)
@@ -250,7 +268,7 @@ class Client extends EventEmitter {
       try {
         undeliveredMessages = JSON.parse(_undeliveredMessages)
       } catch (error) {
-        console.error(error)
+        return this.registerError(error)
       }
 
     const messages = undeliveredMessages.map(message =>

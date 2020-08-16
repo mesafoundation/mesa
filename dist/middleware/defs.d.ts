@@ -11,8 +11,9 @@ export interface MiddlewareHandler {
     onMessageSent: (message: Message, clients: Client[], fromCurrentReplica: boolean) => void;
     onMessageRecieved: (message: Message, client: Client) => void;
     onAuthenticated: (client: Client) => void;
+    onError: (error: Error, client?: Client) => void;
 }
-export declare type MiddlewareEvent = 'onConnection' | 'onDisconnection' | 'onPortalJoin' | 'onPortalLeave' | 'onUndeliverableMessageSent' | 'onRedeliverUndeliverableMessages' | 'onMessageSent' | 'onMessageRecieved' | 'onAuthenticated';
+export declare type MiddlewareEvent = 'onConnection' | 'onDisconnection' | 'onPortalJoin' | 'onPortalLeave' | 'onUndeliverableMessageSent' | 'onRedeliverUndeliverableMessages' | 'onMessageSent' | 'onMessageRecieved' | 'onAuthenticated' | 'onError';
 export declare type MiddlewareNondescriptHandler = (...args: any[]) => void;
 declare type Middleware = (server: Server) => MiddlewareHandler;
 export default Middleware;

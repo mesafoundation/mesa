@@ -45,8 +45,11 @@ class Client extends events_1.EventEmitter {
         this.authenticationCheck = callback;
     }
     updateUser(update) {
-        if (!this.authenticated)
-            throw new Error('This user hasn\'t been authenticated yet');
+        if (!this.authenticated) {
+            const error = new Error('This user hasn\'t been authenticated yet');
+            this.registerError(error);
+            throw error;
+        }
         this.registerAuthentication(null, update);
     }
     disconnect(code) {
@@ -108,14 +111,19 @@ class Client extends events_1.EventEmitter {
         if (this.server.serverOptions.storeMessages)
             this.messages.recieved.push(message);
     }
-    registerAuthentication(error, result) {
-        if (error && this.server.authenticationConfig.disconnectOnFail)
+    registerAuthentication(_error, result) {
+        if (_error && this.server.authenticationConfig.disconnectOnFail)
             return this.disconnect(1008);
         const { id, user } = result;
+        let error;
         if (typeof id === 'undefined')
-            throw new Error('No user id supplied in result callback');
+            error = new Error('No user id supplied in result callback');
         else if (typeof user === 'undefined')
-            throw new Error('No user object supplied in result callback');
+            error = new Error('No user object supplied in result callback');
+        if (error) {
+            this.registerError(error);
+            throw error;
+        }
         this.id = id;
         this.user = user;
         if (this.server.redis) {
@@ -143,6 +151,10 @@ class Client extends events_1.EventEmitter {
         this.server.handleMiddlewareEvent('onDisconnection', this, code, reason);
         this.server.registerDisconnection(this);
     }
+    registerError(error) {
+        this.emit('error', error);
+        this.server.handleMiddlewareEvent('onError', error, this);
+    }
     async redeliverUndeliverableMessages() {
         const namespace = this.clientNamespace('undelivered_messages');
         const _undeliveredMessages = await this.server.redis.hget(namespace, this.id);
@@ -153,7 +165,7 @@ class Client extends events_1.EventEmitter {
                 undeliveredMessages = JSON.parse(_undeliveredMessages);
             }
             catch (error) {
-                console.error(error);
+                return this.registerError(error);
             }
         const messages = undeliveredMessages.map(message => new message_1.default(message.op, message.d, message.t)).map((message, sequence) => {
             message.sequence = sequence + 1;

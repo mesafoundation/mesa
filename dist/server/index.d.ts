@@ -87,6 +87,7 @@ declare class Server extends EventEmitter {
     registerAuthentication(client: Client): void;
     get hasMiddleware(): boolean;
     registerDisconnection(disconnectingClient: Client): void;
+    registerError(error: Error, client?: Client): void;
     close(): void;
     sendPortalableMessage(_message: Message, client: Client): void;
     get pubSubNamespace(): string;

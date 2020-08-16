@@ -16,6 +16,8 @@ export interface MiddlewareHandler {
   onMessageRecieved: (message: Message, client: Client) => void
 
   onAuthenticated: (client: Client) => void
+
+  onError: (error: Error, client?: Client) => void
 }
 
 export type MiddlewareEvent =
@@ -27,7 +29,8 @@ export type MiddlewareEvent =
   'onRedeliverUndeliverableMessages' |
   'onMessageSent' |
   'onMessageRecieved' |
-  'onAuthenticated'
+  'onAuthenticated' |
+  'onError'
 
 export type MiddlewareNondescriptHandler = (...args: any[]) => void
 

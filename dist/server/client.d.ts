@@ -55,6 +55,7 @@ declare class Client extends EventEmitter {
     private registerMessage;
     private registerAuthentication;
     private registerDisconnection;
+    private registerError;
     private redeliverUndeliverableMessages;
     private clearUndeliveredMessages;
     private clientNamespace;

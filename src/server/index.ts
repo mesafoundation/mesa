@@ -242,7 +242,9 @@ class Server extends EventEmitter {
 
       try {
         await eventHandler(...args)
-      } catch(error) {}
+      } catch(error) {
+        this.registerError(error)
+      }
     }
   }
 
@@ -268,6 +270,12 @@ class Server extends EventEmitter {
 
     if(this.redis)
       this.redis.decr(this.connectedClientsCountNamespace)
+  }
+
+  public registerError(error: Error, client?: Client) {
+    this.emit('error', error, client)
+
+    this.handleMiddlewareEvent('onError', error, client)
   }
 
   public close() {
@@ -322,6 +330,7 @@ class Server extends EventEmitter {
 
     this.wss = new WebSocket.Server(options)
     this.wss.on('connection', (socket, req) => this.registerConnection(socket, req))
+    this.wss.on('error', (error) => this.registerError(error))
 
     this.setupCloseHandler()
   }
@@ -380,7 +389,7 @@ class Server extends EventEmitter {
       try {
         json = JSON.parse(data)
       } catch (error) {
-        return this.emit('error', error)
+        return this.registerError(error)
       }
 
       switch (channel) {

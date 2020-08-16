@@ -118,7 +118,9 @@ class Server extends events_1.EventEmitter {
             try {
                 await eventHandler(...args);
             }
-            catch (error) { }
+            catch (error) {
+                this.registerError(error);
+            }
         }
     }
     registerAuthentication(client) {
@@ -139,6 +141,10 @@ class Server extends events_1.EventEmitter {
         });
         if (this.redis)
             this.redis.decr(this.connectedClientsCountNamespace);
+    }
+    registerError(error, client) {
+        this.emit('error', error, client);
+        this.handleMiddlewareEvent('onError', error, client);
     }
     close() {
         this.wss.close();
@@ -179,6 +185,7 @@ class Server extends events_1.EventEmitter {
             options.path = config.path;
         this.wss = new ws_1.default.Server(options);
         this.wss.on('connection', (socket, req) => this.registerConnection(socket, req));
+        this.wss.on('error', (error) => this.registerError(error));
         this.setupCloseHandler();
     }
     parseConfig(_config) {
@@ -220,7 +227,7 @@ class Server extends events_1.EventEmitter {
                 json = JSON.parse(data);
             }
             catch (error) {
-                return this.emit('error', error);
+                return this.registerError(error);
             }
             switch (channel) {
                 case pubSubNamespace:
