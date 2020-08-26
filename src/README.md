@@ -168,7 +168,7 @@ We supply a number of guides for fully utilising Mesa client:
   * chat.mesa.ws is an example chat app using `Mesa.Server` and `mesa-js-client`. [Source Code](https://github.com/neoncloth/mech)
 * [Echo Server](https://echo.mesa.ws)
   * echo.mesa.ws is an echo server for testing Mesa connections
-* [Gateway Server](https://github.com/neoncloth/mega)
+* [Gateway Server](https://github.com/darnfish/mega)
   * Mega is a gateway server utilising Mesa that can be configured via environment variables
 * [Client Libraries](/src/docs/client-libraries.md)
   * Our guidance on using available client libraries or creating your own
