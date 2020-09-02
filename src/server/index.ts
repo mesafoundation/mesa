@@ -133,12 +133,14 @@ class Server extends EventEmitter {
     }
 
     if (this.redis) {
+      const allIdsOnReplica = this.authenticatedClientIds
+
       function isIdOnReplica(id) {
-        return _recipients.indexOf(id) > -1
+        return allIdsOnReplica.indexOf(id) > -1
       }
 
-      const idsOnReplica = this.authenticatedClientIds.filter(isIdOnReplica)
-      let idsOnCluster = this.authenticatedClientIds.filter(id => !isIdOnReplica(id))
+      const idsOnReplica = _recipients.filter(isIdOnReplica)
+      let idsOnCluster = _recipients.filter(id => !isIdOnReplica(id))
 
       // If sync is enabled
       if(this.syncConfig.enabled) {
