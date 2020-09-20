@@ -1,5 +1,8 @@
 # Configuration
-Mesa's Server component allows for the following configuration to be passed in during initialization:
+
+Mesa's Server component allows for the following configuration to be passed in
+during initialization:
+
 ```
 {
   // Optional: port that Mesa should listen on. Defaults to 4000
@@ -78,9 +81,11 @@ Mesa's Server component allows for the following configuration to be passed in d
 }
 ```
 
-To supply this config, pass it into the Mesa constructor as you would with any other configuration:
+To supply this config, pass it into the Mesa constructor as you would with any
+other configuration:
+
 ```js
 const mesa = new Mesa({
   // Options go here
-})
+});
 ```
