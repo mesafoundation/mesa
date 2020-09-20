@@ -4,25 +4,35 @@
 *
 */
 
-const {Portal} = require('../lib')
+const { Portal } = require("../lib");
 
-const portal = new Portal('redis://localhost:6379',
-                          {namespace : 'example', verbose : true})
+const portal = new Portal("redis://localhost:6379", {
+  namespace: "example",
+  verbose: true,
+});
 
-portal.on('connection', () => {console.log('Client connected')})
+portal.on("connection", () => {
+  console.log("Client connected");
+});
 
-portal.on('authentication',
-          clientId => {console.log('Client authenticated with id', clientId)})
+portal.on("authentication", (clientId) => {
+  console.log("Client authenticated with id", clientId);
+});
 
-portal.on('message', (message, clientId) => {
-  const { opcode, data, type } = message
+portal.on("message", (message, clientId) => {
+  const { opcode, data, type } = message;
 
-  console.log('Received', opcode, data, type, clientId ? `from ${clientId}` : '')
-})
+  console.log(
+    "Received",
+    opcode,
+    data,
+    type,
+    clientId ? `from ${clientId}` : ""
+  );
+});
 
-  portal.on('disconnection', clientId => {
-    if (!clientId)
-      return console.log('Client disconnected')
+portal.on("disconnection", (clientId) => {
+  if (!clientId) return console.log("Client disconnected");
 
-      console.log('Authenticated client with id', clientId, 'disconnected')
-  })
+  console.log("Authenticated client with id", clientId, "disconnected");
+});

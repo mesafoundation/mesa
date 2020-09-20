@@ -9,25 +9,27 @@ as its data.
 *
 */
 
-const {Client, Message} = require('../lib')
-const {default : uuid} = require('../lib/utils/uuid.util')
+const { Client, Message } = require("../lib");
+const { default: uuid } = require("../lib/utils/uuid.util");
 
-const client = new Client('ws://localhost:4000/ws')
+const client = new Client("ws://localhost:4000/ws");
 
-client.on('connected', async () => {
-  console.log('Connected to Mesa')
+client.on("connected", async () => {
+  console.log("Connected to Mesa");
 
-  await client.authenticate({ id: uuid() })
+  await client.authenticate({ id: uuid() });
 
   setInterval(() => {
-    console.log('Sending \'PING\' message to server')
+    console.log("Sending 'PING' message to server");
 
-    client.send(new Message(0, { r: uuid() }, 'PING'))
-  }, 1000)
-})
+    client.send(new Message(0, { r: uuid() }, "PING"));
+  }, 1000);
+});
 
-    client.on('message',
-              message => {console.log('Received', message, 'from server')})
+client.on("message", (message) => {
+  console.log("Received", message, "from server");
+});
 
-    client.on('disconnected', (code, reason) => {console.log(
-                                  'Disconnected from Mesa', code, reason)})
+client.on("disconnected", (code, reason) => {
+  console.log("Disconnected from Mesa", code, reason);
+});

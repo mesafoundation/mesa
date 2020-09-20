@@ -5,13 +5,15 @@
 *
 */
 
-const {Dispatcher, Message} = require('../lib')
+const { Dispatcher, Message } = require("../lib");
 
-const dispatcher =
-    new Dispatcher('redis://localhost:6379', {namespace : 'example'})
+const dispatcher = new Dispatcher("redis://localhost:6379", {
+  namespace: "example",
+});
 
-dispatcher.dispatch(new Message(0, {status : 'online'}, 'STATUS_UPDATE'),
-                    [ '*' ])
+dispatcher.dispatch(new Message(0, { status: "online" }, "STATUS_UPDATE"), [
+  "*",
+]);
 
-    // dispatcher.dispatch(new Message(0, { status: 'online' },
-    // 'STATUS_UPDATE'), ['0', '1', '2'])
+// dispatcher.dispatch(new Message(0, { status: 'online' },
+// 'STATUS_UPDATE'), ['0', '1', '2'])
