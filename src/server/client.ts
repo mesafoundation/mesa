@@ -155,7 +155,7 @@ class Client extends EventEmitter {
     } else {
       this.heartbeatAttempts += 1
 
-      if (this.heartbeatAttempts > this.heartbeatMaxAttempts) 
+      if (this.heartbeatAttempts > this.heartbeatMaxAttempts)
         return this.disconnect()
 
       this.send(new Message(1, { tries: this.heartbeatAttempts, max: this.heartbeatMaxAttempts }), true)
