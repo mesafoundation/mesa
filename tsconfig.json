@@ -2,9 +2,7 @@
   "compilerOptions": {
     "target": "es2017",
     "module": "commonjs",
-    "lib": [
-      "es2017"
-    ],
+    "lib": ["es2017"],
     "declaration": true,
     "noImplicitAny": false,
     "esModuleInterop": true,
@@ -14,7 +12,5 @@
     "allowSyntheticDefaultImports": true,
     "outDir": "./lib"
   },
-  "include": [
-    "./src"
-  ]
+  "include": ["./src"]
 }
