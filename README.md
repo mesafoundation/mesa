@@ -117,7 +117,7 @@ We supply a number of guides for fully utilising Mesa server:
 #### Messages
 
 * [Redelivering Messages](docs/server/message/sync.md)
-  * Ensure clients recieve missed messages upon reconnection
+  * Ensure clients receive missed messages upon reconnection
 * [Handling Messages using Portal](docs/server/message/portal.md)
   * Recieve and handle client messages from anywhere in your codebase
 * [Sending Messages using Dispatcher](docs/server/message/dispatcher.md)

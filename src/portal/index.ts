@@ -97,7 +97,7 @@ class Portal extends EventEmitter {
     this.publishReadyState(true)
     this.redis.sadd(this.availablePortalsNamespace, this.id)
 
-    this.log('published! ready to recieve updates on namespace', this.config.namespace)
+    this.log('published! ready to receive updates on namespace', this.config.namespace)
   }
 
   private setupCloseHandler() {

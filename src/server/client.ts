@@ -56,7 +56,7 @@ class Client extends EventEmitter {
   public server: Server
   public request?: http.IncomingMessage
 
-  public messages: IMessages = { sent: [], recieved: [] }
+  public messages: IMessages = { sent: [], received: [] }
 
   public authenticationCheck: AuthenticationCallback
 
@@ -189,10 +189,10 @@ class Client extends EventEmitter {
     this.emit('message', message)
     this.server.emit('message', message)
     this.server.sendPortalableMessage(message, this)
-    this.server.handleMiddlewareEvent('onMessageRecieved', message, this)
+    this.server.handleMiddlewareEvent('onMessageReceived', message, this)
 
     if (this.server.serverOptions.storeMessages)
-      this.messages.recieved.push(message)
+      this.messages.received.push(message)
   }
 
   private registerAuthentication(_error: any, result: IAuthenticationResult) {

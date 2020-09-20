@@ -21,7 +21,7 @@ portal.on('authentication', clientId => {
 portal.on('message', (message, clientId) => {
   const { opcode, data, type } = message
 
-  console.log('Recieved', opcode, data, type, clientId ? `from ${clientId}` : '')
+  console.log('Received', opcode, data, type, clientId ? `from ${clientId}` : '')
 })
 
 portal.on('disconnection', clientId => {

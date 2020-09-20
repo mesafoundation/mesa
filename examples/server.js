@@ -33,7 +33,7 @@ mesa.on('connection', client => {
       client.send(new Message(0, {}, 'PONG'))
     }
 
-    console.log('Recieved', data, type, 'from', client.id || 'client')
+    console.log('Received', data, type, 'from', client.id || 'client')
   })
 
   client.on('disconnect', ({ code, reason }) => {

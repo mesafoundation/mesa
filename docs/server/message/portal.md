@@ -66,7 +66,7 @@ portal.on('authentication', clientId => {
 portal.on('message', message => {
   const { opcode, data, type } = message
 
-  console.log('Recieved', opcode, data, type)
+  console.log('Received', opcode, data, type)
 })
 
 portal.on('disconnection', clientId => {
@@ -79,7 +79,7 @@ portal.on('disconnection', clientId => {
 
 By default, messages sent to Mesa servers are only sent to a single Portal in order to ensure events are not handled in two different places. If you want to capture all events using a Portal, set `reportAllEvents` to `true` in you Portal config.
 
-*Note: Unless you are using `reportAllEvents` or have a single Portal instance running, you should never update application state using Portals. There is no guarentee a single Portal will recieve the same `connection`, `authentication`, `message`, and `disconnection` events for the same client. You should use Portals to forward messages to clients or update an existing database.*
+*Note: Unless you are using `reportAllEvents` or have a single Portal instance running, you should never update application state using Portals. There is no guarentee a single Portal will receive the same `connection`, `authentication`, `message`, and `disconnection` events for the same client. You should use Portals to forward messages to clients or update an existing database.*
 
 An example of a Chat application handling events using Portals would look something like this:
 ```js

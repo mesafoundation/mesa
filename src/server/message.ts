@@ -7,7 +7,7 @@ type Sequence = number
 
 export interface IMessages {
   sent: Message[]
-  recieved: Message[]
+  received: Message[]
 }
 
 export interface IMessageOptions {
