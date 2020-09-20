@@ -14,7 +14,10 @@
     "lint": "eslint src",
     "lint:fix": "eslint --fix src"
   },
-  "files": ["docs/**/*", "lib/**/*"],
+  "files": [
+    "docs/**/*",
+    "lib/**/*"
+  ],
   "dependencies": {
     "death": "^1.1.0",
     "ioredis": "^4.14.1",
