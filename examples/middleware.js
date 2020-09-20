@@ -1,41 +1,43 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /**
   This script will start a Mesa server on port :4000 with portals enabled
-**/
+*
+*/
 
-const { default: Mesa, Message } = require('../lib')
+const {default : Mesa, Message} = require('../lib')
 
 const mesa = new Mesa({
-  port: 4000,
-  path: '/ws',
+  port : 4000,
+  path : '/ws',
 
-  namespace: 'middleware'
+  namespace : 'middleware'
 })
 
 function Logger(server) {
   return {
     onConnection: client => console.log('Client connected!'),
-    onDisconnection: (client, code, reason) => console.log('Client disconnected :(', code, reason),
+                  onDisconnection: (client, code, reason) =>
+                      console.log('Client disconnected :(', code, reason),
 
-    onMessage: (message, client) => console.log(message),
-    onAuthenticated: client => console.log('Client authenticated', client.id)
+                  onMessage: (message, client) => console.log(message),
+                  onAuthenticated: client =>
+                      console.log('Client authenticated', client.id)
   }
 }
 
 function PromClient(config) {
   return server => {
-    console.log(`Prometheus client middleware registered with path ${config.path}`)
+    console.log(
+        `Prometheus client middleware registered with path ${config.path}`)
 
     return {
-      onConnection: client => {
-        console.log('Client connected!')
-      }
+      onConnection: client => { console.log('Client connected!') }
     }
   }
 }
 
 mesa.use(Logger)
-mesa.use(PromClient({ path: '/metrics' }))
+mesa.use(PromClient({path : '/metrics'}))
 
 mesa.on('connection', client => {
   client.authenticate(async ({ id }, done) => {
@@ -43,11 +45,11 @@ mesa.on('connection', client => {
   })
 
   client.on('message', message => {
-    const { data, type } = message
+  const {data, type} = message
 
-    switch(type) {
-    case 'PING':
-      client.send(new Message(0, {}, 'PONG'))
-    }
+  switch (type) {
+  case 'PING':
+    client.send(new Message(0, {}, 'PONG'))
+  }
   })
 })
