@@ -6,8 +6,8 @@
   It will also log and recieved messages and will also log 'connected' and 'disconnected' events
 **/
 
-const { Client, Message } = require('../dist')
-const { default: uuid } = require('../dist/utils/uuid.util')
+const { Client, Message } = require('../lib')
+const { default: uuid } = require('../lib/utils/uuid.util')
 
 const client = new Client('ws://localhost:4000/ws')
 

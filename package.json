@@ -1,36 +1,33 @@
 {
+  "name": "@cryb/mesa",
+  "version": "1.5.1",
+  "description": "A scalable, modern & robust WebSocket wrapper",
+  "main": "lib/index.js",
+  "repository": "https://github.com/crybapp/mesa.git",
+  "author": "William Gibson <william@tired.io>",
+  "license": "MIT",
   "scripts": {
-    "build": "bash ./scripts/build.sh",
-    "deploy": "bash ./scripts/deploy.sh",
+    "start": "node examples/server",
+    "dev": "tsc-watch --compiler typescript/bin/tsc --onSuccess \"node examples/server\"",
+    "build": "tsc",
     "test": "jest",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "yarn lint --fix"
+    "lint": "eslint src",
+    "lint:fix": "eslint --fix src"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "yarn build"
-    }
+  "files": ["docs/**/*", "lib/**/*"],
+  "dependencies": {
+    "death": "^1.1.0",
+    "ioredis": "^4.14.1",
+    "ws": "^7.2.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.2.2",
-    "@babel/plugin-transform-runtime": "^7.4.4",
-    "@babel/preset-env": "^7.2.0",
-    "@babel/runtime": "^7.4.5",
-    "@types/axios": "^0.14.0",
+    "@types/ioredis": "^4.14.3",
     "@types/node": "^12.0.8",
-    "@types/ws": "^6.0.1",
+    "@types/ws": "^6.0.4",
     "@typescript-eslint/eslint-plugin": "^3.2.0",
     "@typescript-eslint/parser": "^3.2.0",
-    "babel-plugin-transform-runtime": "^6.23.0",
-    "babel-polyfill": "^6.26.0",
     "eslint": "^7.2.0",
-    "gulp": "^4.0.0",
-    "gulp-typescript": "^5.0.1",
-    "husky": "^3.1.0",
     "jest": "^26.0.1",
-    "minimatch": ">=3.0.2",
-    "rimraf": "^2.6.3",
-    "ts-node": "^8.3.0",
     "tsc-watch": "^4.0.0",
     "typescript": "^3.7.4"
   }

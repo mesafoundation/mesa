@@ -1,5 +1,5 @@
 const http = require('http')
-const { default: Mesa, Message, Client } = require('../dist')
+const { default: Mesa, Message, Client } = require('../lib')
 
 describe('server', () => {
   describe('client', () => {

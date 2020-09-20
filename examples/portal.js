@@ -3,7 +3,7 @@
   This script will log events on a Mesa server using a Portal
 **/
 
-const { Portal } = require('../dist')
+const { Portal } = require('../lib')
 
 const portal = new Portal('redis://localhost:6379', {
   namespace: 'example',
