@@ -3,11 +3,11 @@
   This script will authenticate with a Mesa server running on port :4000 with a random UUID
   and send a message with opcode 0 and type 'PING' and a random UUID as its data.
 
-  It will also log and recieved messages and will also log 'connected' and 'disconnected' events
+  It will also log and received messages and will also log 'connected' and 'disconnected' events
 **/
 
-const { Client, Message } = require('../dist')
-const { default: uuid } = require('../dist/utils/uuid.util')
+const { Client, Message } = require('../lib')
+const { default: uuid } = require('../lib/utils/uuid.util')
 
 const client = new Client('ws://localhost:4000/ws')
 
@@ -24,7 +24,7 @@ client.on('connected', async () => {
 })
 
 client.on('message', message => {
-  console.log('Recieved', message, 'from server')
+  console.log('Received', message, 'from server')
 })
 
 client.on('disconnected', (code, reason) => {

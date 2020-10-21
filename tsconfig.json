@@ -12,7 +12,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "allowSyntheticDefaultImports": true,
-    "outDir": "./dist"
+    "outDir": "./lib"
   },
   "include": ["./src"]
 }

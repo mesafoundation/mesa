@@ -1,5 +1,5 @@
 # Message Sync
-Mesa suports message redelivery (which we call message sync) allowing clients that have been disconnected either purposefully or unpurposefully to recieve any messages that couldn't be delivered.
+Mesa suports message redelivery (which we call message sync) allowing clients that have been disconnected either purposefully or unpurposefully to receive any messages that couldn't be delivered.
 
 Message sync requires a couple prerequisites. First, you'll need to enable and use the `client.authenticate` API, which you can learn about [here](../client/authentication.md). You'll also need to set `sync.enabled` to `true` in your Dispatcher config if you're using that API.
 
@@ -57,11 +57,11 @@ client.send(new Message(0, { typing: true }, 'TYPING_UPDATE', { sync: false }))
 This is useful when sending messages which can be lost with little to no repercussions for the client application state, such as typing indicator updates
 
 ## Notes
-Clients will recieve undelivered messages in this format:
+Clients will receive undelivered messages in this format:
 ```json
 { "op": 0, "d": {}, "t": "EXAMPLE_MESSAGE", "s": 3 }
 ```
 
-The `s` property notates the sequence position of the message. This number is used to help clients reconstruct the order undelivered messages were supposed to be recieved in.
+The `s` property notates the sequence position of the message. This number is used to help clients reconstruct the order undelivered messages were supposed to be received in.
 
 *Note: The sequence property begins counting at one instead of zero due to the way JavaScript handles numbers*

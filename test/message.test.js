@@ -1,4 +1,4 @@
-const { Message } = require('../dist')
+const { Message } = require('../lib')
 
 describe('message', () => {
   describe('constructor', () => {

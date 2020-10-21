@@ -4,7 +4,7 @@
   Message in the 'example' namespace to all clients
 **/
 
-const { Dispatcher, Message } = require('../dist')
+const { Dispatcher, Message } = require('../lib')
 
 const dispatcher = new Dispatcher('redis://localhost:6379', {
   namespace: 'example'

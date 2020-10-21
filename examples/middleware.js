@@ -3,12 +3,12 @@
   This script will start a Mesa server on port :4000 with portals enabled
 **/
 
-const { default: Mesa, Message } = require('../dist')
+const { default: Mesa, Message } = require('../lib')
 
 const mesa = new Mesa({
   port: 4000,
   path: '/ws',
-  
+
   namespace: 'middleware'
 })
 

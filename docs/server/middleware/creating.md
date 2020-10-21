@@ -64,7 +64,7 @@ As state kept in the middleware does not persist on replicated servers or after 
 ```js
 function PersistedMetrics(config) {
   return function({ redis, mapMiddlewareNamespace }) {
-    const [connectedKey, messagesKey] = mapMiddlewareNamespace(['connected_clients_count', 'messages_recieved_count'], 'persisted_metrics')
+    const [connectedKey, messagesKey] = mapMiddlewareNamespace(['connected_clients_count', 'messages_received_count'], 'persisted_metrics')
 
     return {
       onConnected: client => {
@@ -136,8 +136,8 @@ return {
   onMessageSent(message: Message, client: Client[], fromCurrentReplica: boolean) {
 
   },
-  // Called when Mesa recieves a message from a client
-  onMessageRecieved(message: Message, client: Client) {
+  // Called when Mesa receives a message from a client
+  onMessageReceived(message: Message, client: Client) {
 
   },
 

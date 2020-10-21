@@ -13,7 +13,7 @@ export interface MiddlewareHandler {
   onRedeliverUndeliverableMessages: (messages: Message[], client: Client) => void
 
   onMessageSent: (message: Message, clients: Client[], fromCurrentReplica: boolean) => void
-  onMessageRecieved: (message: Message, client: Client) => void
+  onMessageReceived: (message: Message, client: Client) => void
 
   onAuthenticated: (client: Client) => void
 
@@ -28,7 +28,7 @@ export type MiddlewareEvent =
   'onUndeliverableMessageSent' |
   'onRedeliverUndeliverableMessages' |
   'onMessageSent' |
-  'onMessageRecieved' |
+  'onMessageReceived' |
   'onAuthenticated' |
   'onError'
 

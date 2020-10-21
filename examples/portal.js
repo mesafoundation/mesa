@@ -3,7 +3,7 @@
   This script will log events on a Mesa server using a Portal
 **/
 
-const { Portal } = require('../dist')
+const { Portal } = require('../lib')
 
 const portal = new Portal('redis://localhost:6379', {
   namespace: 'example',
@@ -21,7 +21,7 @@ portal.on('authentication', clientId => {
 portal.on('message', (message, clientId) => {
   const { opcode, data, type } = message
 
-  console.log('Recieved', opcode, data, type, clientId ? `from ${clientId}` : '')
+  console.log('Received', opcode, data, type, clientId ? `from ${clientId}` : '')
 })
 
 portal.on('disconnection', clientId => {

@@ -30,4 +30,4 @@ server.use(Metrics)
 // etc
 ```
 
-*Note: Middleware handlers will recieve all data from client authentication tokens to the content of messages. Ensure that the middleware you're planning to use has been analysed by your security team or yourself. Cryb or the Mesa developers are not responsible for data breaches caused by middleware*
+*Note: Middleware handlers will receive all data from client authentication tokens to the content of messages. Ensure that the middleware you're planning to use has been analysed by your security team or yourself. Cryb or the Mesa developers are not responsible for data breaches caused by middleware*

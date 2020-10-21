@@ -234,7 +234,7 @@ class Client extends EventEmitter {
         )
 
       if (rules.indexOf('store_messages') > -1)
-        this.messages = { sent: [], recieved: [] }
+        this.messages = { sent: [], received: [] }
 
       this.rules = rules
 
@@ -253,7 +253,7 @@ class Client extends EventEmitter {
     this.emit('message', message)
 
     if (this.rules.indexOf('store_messages') > -1)
-      this.messages.recieved.push(message)
+      this.messages.received.push(message)
   }
 
   private registerClose(code?: number, reason?: string) {

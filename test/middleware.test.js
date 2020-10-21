@@ -1,5 +1,5 @@
 const http = require('http')
-const { default: Mesa, Message, Client } = require('../dist')
+const { default: Mesa, Message, Client } = require('../lib')
 
 describe('middleware', () => {
   it('properly registers a middleware', done => {
@@ -43,16 +43,15 @@ describe('middleware', () => {
       client.on('connected', () => client.disconnect())
     })
 
-    test('onMessageRecieved', () => {
+    test('onMessageReceivedAndDisconnection', done => {
       const message = new Message(0, { x: 1, y: 2 }, 'TEST')
 
       function Middleware(server) {
         return {
-          onMessageRecieved: mwMessage => {
+          onMessageReceived: mwMessage => {
             expect(mwMessage).toMatchObject(message)
-
-            server.wss.close()
-          }
+          },
+          onDisconnection: () => server.wss.close(done)
         }
       }
 
@@ -61,7 +60,10 @@ describe('middleware', () => {
       server.use(Middleware)
 
       const client = new Client(`ws://localhost:${port}`)
-      client.on('connected', () => client.send(message))
+      client.on('connected', () => {
+        client.send(message)
+        client.disconnect()
+      })
     })
   })
 })
