@@ -6,9 +6,9 @@ We recommend that you keep to opcode 0 for sending / recieving events via Mesa t
 | **Code** | **Name**           | **Client Action** | **Description**                                                                          |
 |----------|--------------------|-------------------|------------------------------------------------------------------------------------------|
 | 0        | Dispatch           | Send/Receive      | Sent by both Mesa and the client to transfer events                                      |
-| 1        | Heartbeat          | Send/Recieve      | Sent by both Mesa and the client for ping checking                                       |
+| 1        | Heartbeat          | Send/Receive      | Sent by both Mesa and the client for ping checking                                       |
 | 2        | Authentication     | Send              | Sent by the client to authenticate with Mesa                                             |
-| 5        | Internal Event     | N/A               | Sent and recieved by internal server components                                          |
-| 10       | Hello              | Recieve           | Sent by Mesa alongside server information for client setup                               |
+| 5        | Internal Event     | N/A               | Sent and received by internal server components                                          |
+| 10       | Hello              | Receive           | Sent by Mesa alongside server information for client setup                               |
 | 11       | Heartbeat ACK      | Receive           | Sent by Mesa to acknowledge a heartbeat has been received                                |
 | 22       | Authentication ACK | Receive           | Sent by Mesa alongside user information to acknowledge the client has been authenticated |
