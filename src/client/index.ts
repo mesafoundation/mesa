@@ -144,22 +144,18 @@ class Client extends EventEmitter {
       clearInterval(this.reconnectionInterval)
   }
 
-  private parseConfig(_config?: IClientConfig) {
-    const config = Object.assign({}, _config)
-
-    if (typeof config.autoConnect === 'undefined')
-      config.autoConnect = true
-
-    return config
+  private parseConfig(config?: IClientConfig) {
+    return {
+      autoConnect: true,
+      ...config
+    }
   }
 
-  private parseAuthenticationConfig(_config?: IClientAuthenticationConfig) {
-    const config = Object.assign({}, _config)
-
-    if (typeof config.shouldSync === 'undefined')
-      config.shouldSync = true
-
-    return config
+  private parseAuthenticationConfig(config?: IClientAuthenticationConfig) {
+    return {
+      shouldSync: true,
+      ...config
+    }
   }
 
   private connectAndSupressWarnings() {
@@ -178,14 +174,9 @@ class Client extends EventEmitter {
       isAutomaticReconnection: this.isAutomaticReconnection
     })
 
-    if (this.isInitialConnection)
-      this.isInitialConnection = false
-
-    if (this.isInitialSessionConnection)
-      this.isInitialSessionConnection = false
-
-    if (this.isAutomaticReconnection)
-      this.isAutomaticReconnection = false
+    this.isInitialConnection = false
+    this.isInitialSessionConnection = false
+    this.isAutomaticReconnection = false
 
     if (this.queue.length > 0) {
       this.queue.forEach(this.send)
