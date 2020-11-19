@@ -18,18 +18,18 @@
   "files": ["docs/**/*", "lib/**/*"],
   "dependencies": {
     "death": "^1.1.0",
-    "ioredis": "^4.17.3",
-    "ws": "^7.3.1"
+    "ioredis": "^4.19.2",
+    "ws": "^7.4.0"
   },
   "devDependencies": {
-    "@types/ioredis": "^4.17.4",
-    "@types/node": "^14.11.8",
-    "@types/ws": "^7.2.7",
-    "@typescript-eslint/eslint-plugin": "^4.4.0",
-    "@typescript-eslint/parser": "^4.4.0",
-    "eslint": "^7.10.0",
-    "jest": "^26.5.2",
+    "@types/ioredis": "^4.17.8",
+    "@types/node": "^14.14.8",
+    "@types/ws": "^7.4.0",
+    "@typescript-eslint/eslint-plugin": "^4.8.1",
+    "@typescript-eslint/parser": "^4.8.1",
+    "eslint": "^7.13.0",
+    "jest": "^26.6.3",
     "tsc-watch": "^4.2.9",
-    "typescript": "^4.0.3"
+    "typescript": "^4.0.5"
   }
 }
