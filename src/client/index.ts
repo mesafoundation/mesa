@@ -94,17 +94,19 @@ class Client extends EventEmitter {
     this.didForcefullyDisconnect = false
 
     const resolveConnection = () => {
-      this.ws.removeEventListener('open', resolveConnection)
+      removeListeners()
       resolve()
+    }
+    const rejectError = error => {
+      removeListeners()
+      reject(error)
+    }
+    const removeListeners = () => {
+      this.ws.removeEventListener('open', resolveConnection)
+      this.ws.removeEventListener('error', rejectError)
     }
 
     this.ws.addEventListener('open', resolveConnection)
-
-    const rejectError = error => {
-      this.ws.removeEventListener('error', rejectError)
-      reject(error)
-    }
-
     this.ws.addEventListener('error', rejectError)
 
     this.ws.on('open', () => this.registerOpen())
