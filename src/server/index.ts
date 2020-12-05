@@ -17,6 +17,7 @@ import { createRedisClient } from '../utils/helpers.util'
 import { handleUndeliveredMessage } from '../utils/sync.until'
 
 export type RedisConfig = string | Redis.RedisOptions
+export type RedisOptions = RedisConfig | RedisConfig[]
 
 export interface IClientConfig {
   enforceEqualVersions?: boolean
@@ -64,7 +65,7 @@ interface IServerConfig {
 
   namespace?: string
 
-  redis?: RedisConfig
+  redis?: RedisOptions
   server?: http.Server | https.Server
 
   client?: IClientConfig
@@ -371,7 +372,7 @@ class Server extends EventEmitter {
   }
 
   // Setup
-  private setupRedis(redisConfig: RedisConfig) {
+  private setupRedis(redisConfig: RedisOptions) {
     const redis: Redis.Redis = createRedisClient(redisConfig)
     const publisher: Redis.Redis = createRedisClient(redisConfig)
     const subscriber: Redis.Redis = createRedisClient(redisConfig)

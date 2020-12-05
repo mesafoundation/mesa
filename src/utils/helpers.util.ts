@@ -1,11 +1,13 @@
 import Redis from 'ioredis'
 
-import { RedisConfig } from '../server'
+import { RedisOptions } from '../server'
 
-export const createRedisClient = (config: RedisConfig) => {
+export const createRedisClient = (config: RedisOptions) => {
   let client: Redis.Redis
 
-  if (typeof config === 'string')
+  if (Array.isArray(config))
+    client = new Redis(...config as any[]) // No sane person would do this
+  else if (typeof config === 'string')
     client = new Redis(config)
   else
     client = new Redis(config)
