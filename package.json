@@ -1,6 +1,6 @@
 {
   "name": "@cryb/mesa",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "A scalable, modern & robust WebSocket wrapper",
   "main": "lib/index.js",
   "repository": "https://github.com/crybapp/mesa.git",
@@ -14,7 +14,10 @@
     "lint": "eslint src",
     "lint:fix": "eslint --fix src"
   },
-  "files": ["docs/**/*", "lib/**/*"],
+  "files": [
+    "docs/**/*",
+    "lib/**/*"
+  ],
   "dependencies": {
     "death": "^1.1.0",
     "ioredis": "^4.17.3",
