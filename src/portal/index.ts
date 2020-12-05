@@ -4,7 +4,7 @@ import Redis from 'ioredis'
 
 import Message from '../server/message'
 
-import { RedisConfig } from '../server'
+import { RedisOptions } from '../server'
 import { IMessage } from '../server/message'
 
 import { createRedisClient } from '../utils/helpers.util'
@@ -30,7 +30,7 @@ class Portal extends EventEmitter {
 
   private config: IPortalConfig
 
-  constructor(redis: RedisConfig, config?: IPortalConfig) {
+  constructor(redis: RedisOptions, config?: IPortalConfig) {
     super()
 
     this.redis = createRedisClient(redis)

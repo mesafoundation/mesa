@@ -16,7 +16,7 @@ import { parseConfig, parseRules } from '../utils'
 import { createRedisClient } from '../utils/helpers.util'
 import { handleUndeliveredMessage } from '../utils/sync.until'
 
-export type RedisConfig = string | Redis.RedisOptions
+type RedisConfig = string | Redis.RedisOptions
 export type RedisOptions = RedisConfig | RedisConfig[]
 
 export interface IClientConfig {

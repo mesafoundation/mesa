@@ -3,7 +3,7 @@ import Redis from 'ioredis'
 import DispatchEvent from './event'
 
 import { Message } from '..'
-import { RedisConfig } from '../server'
+import { RedisOptions } from '../server'
 
 import { IInternalMessage } from '../server/message'
 import { createRedisClient } from '../utils/helpers.util'
@@ -27,7 +27,7 @@ class Dispatcher {
 
   private config: IDispatcherConfig
 
-  constructor(redis: RedisConfig, config?: IDispatcherConfig) {
+  constructor(redis: RedisOptions, config?: IDispatcherConfig) {
     this.redis = createRedisClient(redis)
     this.publisher = createRedisClient(redis)
 

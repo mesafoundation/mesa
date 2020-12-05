@@ -11,7 +11,7 @@ const mesa = new Mesa({
 
   namespace: 'example',
 
-  redis: 'redis://localhost:6379'
+  redis: ['redis://localhost:6379', { test: true }]
 })
 
 console.log('Mesa listening on', mesa.port)
