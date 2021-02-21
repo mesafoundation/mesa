@@ -119,7 +119,7 @@ class Server extends EventEmitter {
   private middlewareHandlers: MiddlewareHandler[] = []
 
   private beforeExit?: BeforeExit
-  private gracefullyExit: boolean = true
+  private gracefullyExit = true
 
   constructor(config?: IServerConfig) {
     super()
