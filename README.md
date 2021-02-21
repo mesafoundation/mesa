@@ -58,7 +58,7 @@ mesa.on('connection', client => {
   client.on('message', message => {
     const { data, type } = message
 
-    console.log('Recieved', data, type)
+    console.log('Received', data, type)
   })
 
   client.on('disconnect', (code, reason) => {
@@ -119,7 +119,7 @@ We supply a number of guides for fully utilising Mesa server:
 * [Redelivering Messages](docs/server/message/sync.md)
   * Ensure clients receive missed messages upon reconnection
 * [Handling Messages using Portal](docs/server/message/portal.md)
-  * Recieve and handle client messages from anywhere in your codebase
+  * Receive and handle client messages from anywhere in your codebase
 * [Sending Messages using Dispatcher](docs/server/message/dispatcher.md)
   * Send messages to clients from anywhere in your codebase
 
@@ -164,7 +164,7 @@ client.on('connection', () => {
 client.on('message', message => {
   const { data, type } = message
 
-  console.log('Recieved', data, type)
+  console.log('Received', data, type)
 })
 
 client.on('disconnected', (code, reason) => {
