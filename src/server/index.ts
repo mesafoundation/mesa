@@ -59,6 +59,9 @@ export interface IAuthenticationConfig {
   storeConnectedUsers?: boolean
 }
 
+type Exit = () => void
+type BeforeExit = (signal, exit: Exit) => void
+
 interface IServerConfig {
   port?: number
   path?: string
@@ -76,6 +79,9 @@ interface IServerConfig {
   heartbeat?: IHeartbeatConfig
   reconnect?: IReconnectConfig
   authentication?: IAuthenticationConfig
+
+  beforeExit?: BeforeExit
+  gracefullyExit?: boolean
 }
 
 // tslint:disable-next-line: interface-name
@@ -111,6 +117,9 @@ class Server extends EventEmitter {
   private portalIndex = 0
 
   private middlewareHandlers: MiddlewareHandler[] = []
+
+  private beforeExit?: BeforeExit
+  private gracefullyExit: boolean = true
 
   constructor(config?: IServerConfig) {
     super()
@@ -313,7 +322,14 @@ class Server extends EventEmitter {
         }
       }
 
-      process.exit(signal)
+      function exit() {
+        process.exit(signal)
+      }
+
+      if(this.beforeExit)
+        this.beforeExit(signal, exit)
+      else
+        exit()
     })
   }
 
@@ -335,7 +351,8 @@ class Server extends EventEmitter {
     this.wss.on('connection', (socket, req) => this.registerConnection(socket, req))
     this.wss.on('error', (error) => this.registerError(error))
 
-    this.setupCloseHandler()
+    if(this.gracefullyExit)
+      this.setupCloseHandler()
   }
 
   private parseConfig(_config?: IServerConfig) {
@@ -364,6 +381,9 @@ class Server extends EventEmitter {
 
     this.portalConfig = parseConfig(config.portal, ['enabled', 'distributeLoad'], [false, true])
     this.authenticationConfig = parseConfig(config.authentication, ['timeout', 'required', 'sendUserObject', 'disconnectOnFail', 'storeConnectedUsers'], [10000, false, true, true, true])
+
+    this.beforeExit = config.beforeExit
+    this.gracefullyExit = typeof config.gracefullyExit !== 'undefined' ? config.gracefullyExit : true 
 
     if (this.syncConfig && this.syncConfig.enabled && !this.authenticationConfig.storeConnectedUsers)
       console.warn('Mesa requires config.authentication.storeConnectedUsers to be true for message sync to be enabled')
